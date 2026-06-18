@@ -113,7 +113,7 @@ export function SuperAdminPreviewMenus() {
           <Users className="mr-2 h-4 w-4" />
           Preview as user
         </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+        <DropdownMenuSubContent className="max-h-72 w-64 overflow-y-auto">
           {users.length === 0 && (
             <DropdownMenuItem disabled>
               {usersLoaded ? "No users found" : "Loading users…"}
@@ -124,13 +124,14 @@ export function SuperAdminPreviewMenus() {
               key={u.id}
               disabled={loadingUserId === u.id}
               onClick={() => void handlePreviewUser(u.id)}
+              className="items-start"
             >
-              <span className="flex flex-col items-start gap-0.5">
-                <span>
+              <span className="flex min-w-0 flex-col items-start gap-0.5">
+                <span className="w-full truncate">
                   {u.full_name}
                   {previewUser?.userId === u.id && " ✓"}
                 </span>
-                <span className="text-xs text-muted-foreground">{u.role}</span>
+                <span className="truncate text-xs text-muted-foreground">{u.role}</span>
               </span>
             </DropdownMenuItem>
           ))}

@@ -22,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { roles, useAppStore } from "@/stores/app-store";
 import { isSuperAdmin } from "@/lib/permissions";
 
+const contextSelectClass =
+  "h-9 w-[min(11rem,28vw)] shrink-0 [&>span]:line-clamp-1 [&>span]:text-left";
+
 export function TopBar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -52,39 +55,50 @@ export function TopBar() {
   const orgCompanies = getOrganizationCompanies();
   const companyBranches = getCompanyBranches();
   const companyWarehouses = getCompanyWarehouses();
-  const initials = currentUser?.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2) ?? "U";
+  const userOrgs = organizations.filter((o) =>
+    currentUser?.organization_ids.includes(o.id)
+  );
+  const showOrgSelect = userOrgs.length > 1;
+
+  const initials =
+    currentUser?.full_name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() ?? "U";
 
   const subtitle = previewUser
-    ? `Preview: ${previewUser.fullName}`
+    ? `Preview · ${previewUser.roleName}`
     : previewRoleId
-      ? `Preview: ${role?.name ?? "Role"}`
+      ? `Preview · ${role?.name ?? "Role"}`
       : role?.name;
 
   const showPreviewBanner = isPreviewActive() && isSuperAdmin(currentUser?.role_id ?? "");
 
   return (
-    <>
+    <div className="shrink-0 border-b bg-card">
       {showPreviewBanner && (
-        <div className="border-b bg-amber-500/10 px-4 py-1.5 text-center text-xs text-amber-900 dark:text-amber-200">
-          QA preview active — sidebar shows{" "}
-          {previewUser
-            ? `${previewUser.fullName} (${previewUser.roleName}${
-                previewUser.extraModules.length
-                  ? ` + extra: ${previewUser.extraModules.join(", ")}`
-                  : ""
-              })`
-            : role?.name ?? "selected role"}
-          . Your account remains Super Admin.
+        <div className="border-b bg-amber-500/10 px-3 py-1.5 text-center text-xs text-amber-900 dark:text-amber-200">
+          <p className="truncate">
+            QA preview — sidebar shows{" "}
+            {previewUser
+              ? `${previewUser.fullName} (${previewUser.roleName}${
+                  previewUser.extraModules.length
+                    ? ` + ${previewUser.extraModules.join(", ")}`
+                    : ""
+                })`
+              : role?.name ?? "selected role"}
+            . Your account remains Super Admin.
+          </p>
         </div>
       )}
-      <header className="flex h-14 items-center gap-2 border-b bg-card px-4">
+
+      <header className="flex min-h-14 items-center gap-2 px-3 py-2 lg:px-4">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button variant="ghost" size="icon" className="shrink-0 lg:hidden">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -93,26 +107,26 @@ export function TopBar() {
           </SheetContent>
         </Sheet>
 
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <Select
-            value={currentOrganizationId}
-            onValueChange={(id) => {
-              void setOrganization(id);
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Organization" />
-            </SelectTrigger>
-            <SelectContent>
-              {organizations
-                .filter((o) => currentUser?.organization_ids.includes(o.id))
-                .map((o) => (
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scrollbar-none">
+          {showOrgSelect && (
+            <Select
+              value={currentOrganizationId}
+              onValueChange={(id) => {
+                void setOrganization(id);
+              }}
+            >
+              <SelectTrigger className={contextSelectClass}>
+                <SelectValue placeholder="Organization" />
+              </SelectTrigger>
+              <SelectContent align="start">
+                {userOrgs.map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.name}
                   </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          )}
 
           <Select
             value={currentCompanyId}
@@ -120,10 +134,10 @@ export function TopBar() {
               void setCompany(id);
             }}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className={contextSelectClass}>
               <SelectValue placeholder="Shop / Dept" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent align="start">
               {orgCompanies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.unit_type === "shop" ? "Shop: " : "Dept: "}
@@ -138,10 +152,10 @@ export function TopBar() {
               value={currentSiteKind === "branch" ? currentBranchId : undefined}
               onValueChange={(id) => setBranch(id)}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className={contextSelectClass}>
                 <SelectValue placeholder="Branch" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent align="start">
                 {companyBranches.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
                     {b.code} — {b.name}
@@ -156,10 +170,10 @@ export function TopBar() {
               value={currentSiteKind === "warehouse" ? currentWarehouseId : undefined}
               onValueChange={(id) => setWarehouse(id)}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className={contextSelectClass}>
                 <SelectValue placeholder="Warehouse" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent align="start">
                 {companyWarehouses.map((w) => (
                   <SelectItem key={w.id} value={w.id}>
                     {w.code} — {w.name}
@@ -170,31 +184,42 @@ export function TopBar() {
           )}
         </div>
 
-        <div className="relative hidden flex-1 md:block md:max-w-md">
+        <div className="relative hidden w-52 shrink-0 xl:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Global search..." className="pl-8" />
+          <Input placeholder="Global search..." className="h-9 pl-8" />
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="ghost" size="icon" className="relative shrink-0">
             <Bell className="h-5 w-5" />
             <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px]">3</Badge>
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2">
-                <Avatar className="h-8 w-8">
+              <Button
+                variant="ghost"
+                className="h-auto max-w-[11rem] gap-2 px-2 py-1.5 sm:max-w-[13rem]"
+              >
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                 </Avatar>
-                <div className="hidden text-left md:block">
-                  <p className="text-sm font-medium leading-none">{currentUser?.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{subtitle}</p>
+                <div className="hidden min-w-0 text-left md:block">
+                  <p className="truncate text-sm font-medium leading-tight">
+                    {currentUser?.full_name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="font-normal">
+                <p className="truncate font-medium">{currentUser?.full_name}</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  {currentUser?.email}
+                </p>
+                <p className="text-xs font-normal text-muted-foreground">{subtitle}</p>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
@@ -215,6 +240,6 @@ export function TopBar() {
           </DropdownMenu>
         </div>
       </header>
-    </>
+    </div>
   );
 }
