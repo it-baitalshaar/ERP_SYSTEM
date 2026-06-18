@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   try {
     const { email, password } = (await request.json()) as { email?: string; password?: string };
     if (!email?.trim() || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
     }
 
     const db = createAdminClientOrNull();
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         ? "Check email/password, run migration 0003_admin_auth.sql, then pnpm run seed:users"
         : "Add SUPABASE_SERVICE_ROLE_KEY to .env.local and seed users, or restart dev server after pulling latest code";
       return NextResponse.json(
-        { error: `Invalid email or password. ${hint}` },
+        { error: `Invalid username or password. ${hint}` },
         { status: 401 }
       );
     }

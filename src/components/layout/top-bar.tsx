@@ -179,9 +179,6 @@ export function TopBar() {
               <Settings className="mr-2 h-4 w-4" />
               Account settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/signup/organization")}>
-              Register new organization
-            </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <UserCog className="mr-2 h-4 w-4" />

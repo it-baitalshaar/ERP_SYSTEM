@@ -1,21 +1,41 @@
 import type { PermissionAction } from "@/lib/types";
-import { permissions } from "@/lib/mock-data/roles";
+import {
+  getRolePermissions,
+  mergeEffectivePermissions,
+  type EffectivePermission,
+} from "@/lib/role-permissions";
+
+export type { EffectivePermission };
 
 export function hasPermission(
-  roleId: string,
+  effective: EffectivePermission[],
   moduleKey: string,
   action: PermissionAction
 ): boolean {
-  const perm = permissions.find(
-    (p) => p.role_id === roleId && p.module_key === moduleKey
-  );
+  const perm = effective.find((p) => p.module_key === moduleKey);
   return perm?.actions.includes(action) ?? false;
 }
 
-export function canViewModule(roleId: string, moduleKey: string): boolean {
-  return hasPermission(roleId, moduleKey, "view");
+export function canViewModule(effective: EffectivePermission[], moduleKey: string): boolean {
+  return hasPermission(effective, moduleKey, "view");
 }
 
 export function isAdminRole(roleId: string): boolean {
   return roleId === "role-super" || roleId === "role-company-admin";
 }
+
+export function isSuperAdmin(roleId: string): boolean {
+  return roleId === "role-super";
+}
+
+/** @deprecated Use session effective permissions — kept for role preview */
+export function canViewModuleForRole(roleId: string, moduleKey: string): boolean {
+  const perms = mergeEffectivePermissions(roleId, []);
+  return canViewModule(perms, moduleKey);
+}
+
+export function getEffectivePermissionsForRole(roleId: string): EffectivePermission[] {
+  return mergeEffectivePermissions(roleId, []);
+}
+
+export { getRolePermissions };

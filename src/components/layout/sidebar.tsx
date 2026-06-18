@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { navigation } from "@/lib/navigation";
-import { canViewModule, isAdminRole } from "@/lib/permissions";
+import { canViewModule, isAdminRole, isSuperAdmin } from "@/lib/permissions";
 import { useAppStore } from "@/stores/app-store";
 
 interface SidebarProps {
@@ -23,11 +23,14 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
     setSidebarCollapsed,
     isFeatureEnabled,
     getEffectiveRoleId,
+    getEffectivePermissions,
     getCurrentCompany,
   } = useAppStore();
 
   const collapsed = !mobile && sidebarCollapsed;
   const roleId = getEffectiveRoleId();
+  const effectivePermissions = getEffectivePermissions();
+  const fullNavAccess = isSuperAdmin(roleId);
   const company = getCurrentCompany();
   const businessLines = company?.business_lines ?? [];
 
@@ -35,10 +38,13 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
+        if (item.module_key === "admin" && !isAdminRole(roleId)) return false;
+
+        if (fullNavAccess) return true;
+
         if (item.feature_flag && !isFeatureEnabled(item.feature_flag)) return false;
         if (item.business_line && !businessLines.includes(item.business_line)) return false;
-        if (item.module_key === "admin" && !isAdminRole(roleId)) return false;
-        if (!canViewModule(roleId, item.module_key)) return false;
+        if (!canViewModule(effectivePermissions, item.module_key)) return false;
         return true;
       }),
     }))

@@ -1,4 +1,5 @@
 import type { SessionContext, SessionPayload } from "@/lib/server/users";
+import { mergeEffectivePermissions } from "@/lib/role-permissions";
 import { users as mockUsers } from "@/lib/mock-data/users";
 import {
   companies as mockCompanies,
@@ -51,6 +52,7 @@ export function buildMockSessionForUserId(
 
   return {
     user,
+    permissions: mergeEffectivePermissions(user.role_id, []),
     organizations: mockOrganizations.filter((o) => user.organization_ids.includes(o.id)),
     companies: mockCompanies.filter((c) => user.company_ids.includes(c.id)),
     branches: mockBranches.filter((b) => user.branch_ids.includes(b.id)),

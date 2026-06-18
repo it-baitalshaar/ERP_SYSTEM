@@ -146,7 +146,7 @@ export const navigation: NavGroup[] = [
     key: "admin",
     label: "Administration",
     items: [
-      { key: "admin-companies", label: "Company Management", href: "/admin/companies", icon: "Building2", module_key: "admin" },
+      { key: "admin-companies", label: "Organization Structure", href: "/admin/org-structure", icon: "Building2", module_key: "admin" },
       { key: "admin-users", label: "User Management", href: "/admin/users", icon: "Users", module_key: "admin" },
       { key: "admin-roles", label: "Roles & Permissions", href: "/admin/roles", icon: "Shield", module_key: "admin" },
       { key: "admin-features", label: "Feature Management", href: "/admin/features", icon: "ToggleLeft", module_key: "admin" },

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/lib/auth/session";
 import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
 import { createOrganization } from "@/lib/server/organizations";
+import { needsSetup } from "@/lib/server/bootstrap";
+import { isAdminRole } from "@/lib/server/users";
 import type { BusinessLine, UnitType } from "@/lib/types";
 
 const VALID_BUSINESS_LINES: BusinessLine[] = [
@@ -34,6 +36,16 @@ export async function POST(request: Request) {
     };
 
     const token = await getSessionFromCookies();
+    const setupRequired = await needsSetup();
+
+    if (setupRequired) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (!token || !isAdminRole(token.role_id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const business_lines_filter = (lines?: string[]) =>
       (lines ?? []).filter((line): line is BusinessLine =>
         VALID_BUSINESS_LINES.includes(line as BusinessLine)
@@ -59,8 +71,7 @@ export async function POST(request: Request) {
     }));
 
     const { session, organization_id } = await createOrganization({
-      bootstrap: body.bootstrap === true,
-      link_user_id: token?.sub,
+      link_user_id: token.sub,
       organization: {
         name: body.organization?.name ?? "",
         trade_license_no: body.organization?.trade_license_no ?? "",
@@ -69,13 +80,7 @@ export async function POST(request: Request) {
         vat_trn: body.organization?.vat_trn,
       },
       units,
-      admin: token
-        ? undefined
-        : {
-            full_name: body.admin?.full_name ?? "",
-            email: body.admin?.email ?? "",
-            password: body.admin?.password ?? "",
-          },
+      admin: undefined,
     });
 
     const jwt = await createSessionToken({

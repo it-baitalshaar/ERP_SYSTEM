@@ -1,19 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionTokenSafe } from "@/lib/auth/session";
+import { PLATFORM_INIT_PATH } from "@/lib/auth/platform-init";
 
 const PUBLIC_PREFIXES = [
   "/login",
   "/forgot-password",
-  "/setup",
-  "/signup",
+  PLATFORM_INIT_PATH,
   "/api/auth/login",
   "/api/auth/forgot-password",
   "/api/auth/session",
   "/api/auth/setup",
   "/api/auth/setup-status",
-  "/api/organizations",
 ];
 const PUBLIC_EXACT = ["/"];
+
+/** Paths that must never be discoverable — return 404. */
+const DISABLED_PREFIXES = ["/setup", "/signup"];
 
 function isPublic(pathname: string) {
   if (PUBLIC_EXACT.includes(pathname)) return true;
@@ -22,9 +24,15 @@ function isPublic(pathname: string) {
 
 export async function updateAppSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (DISABLED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return NextResponse.rewrite(new URL("/not-found", request.url));
+  }
+
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const session = token ? await verifySessionTokenSafe(token) : null;
   const isPublicRoute = isPublic(pathname);
+  const isPlatformInit = pathname === PLATFORM_INIT_PATH || pathname.startsWith(`${PLATFORM_INIT_PATH}/`);
 
   if (!session && !isPublicRoute) {
     if (pathname.startsWith("/api/")) {
@@ -35,14 +43,14 @@ export async function updateAppSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (session && (pathname.startsWith("/login") || pathname.startsWith("/setup") || pathname.startsWith("/forgot-password"))) {
+  if (session && (pathname.startsWith("/login") || pathname.startsWith("/forgot-password"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Allow authenticated users to register additional organizations
-  if (session && pathname.startsWith("/signup/organization")) {
+  // Platform init is allowed while signed in (super admin adding organizations)
+  if (session && isPlatformInit) {
     return NextResponse.next({ request });
   }
 

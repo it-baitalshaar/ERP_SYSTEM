@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,27 +14,14 @@ import { toast } from "sonner";
 export default function LoginPage() {
   const router = useRouter();
   const loginWithPassword = useAppStore((s) => s.loginWithPassword);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkingSetup, setCheckingSetup] = useState(true);
-
-  useEffect(() => {
-    void (async () => {
-      const res = await fetch("/api/auth/setup-status");
-      const json = (await res.json()) as { needsSetup?: boolean };
-      if (json.needsSetup) {
-        router.replace("/setup");
-        return;
-      }
-      setCheckingSetup(false);
-    })();
-  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await loginWithPassword(email, password);
+    const { error } = await loginWithPassword(username, password);
     setLoading(false);
     if (error) {
       toast.error(error);
@@ -43,33 +30,27 @@ export default function LoginPage() {
     router.push("/dashboard");
   };
 
-  if (checkingSetup) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Bait Al Shaar ERP</CardTitle>
           <CardDescription>
-            Sign in with credentials created by your administrator
+            Sign in with your username or email and password
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username or email</Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
+                autoComplete="username"
+                placeholder="e.g. SA0038 or name@company.com"
               />
             </div>
             <div className="space-y-2">
@@ -94,14 +75,7 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign in"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Need an account? Ask your company administrator to create one in{" "}
-              <span className="font-medium">Admin → User Management</span>.
-            </p>
-            <p className="text-center text-xs text-muted-foreground">
-              First time after a database reset?{" "}
-              <Link href="/setup" className="underline underline-offset-2">
-                Initial organization setup
-              </Link>
+              Need an account? Contact your company administrator to request access.
             </p>
           </form>
         </CardContent>

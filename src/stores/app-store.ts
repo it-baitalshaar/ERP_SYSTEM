@@ -11,6 +11,8 @@ import type {
   User,
   OrgWarehouse,
 } from "@/lib/types";
+import type { EffectivePermission } from "@/lib/role-permissions";
+import { mergeEffectivePermissions } from "@/lib/role-permissions";
 import {
   branches as mockBranches,
   companies as mockCompanies,
@@ -47,6 +49,7 @@ interface AppState {
   currentSiteKind: SiteKind;
   previewRoleId: string | null;
   featureFlags: FeatureFlag[];
+  userPermissions: EffectivePermission[];
   sidebarCollapsed: boolean;
   loginWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
@@ -67,6 +70,7 @@ interface AppState {
   getOrganizationCompanies: () => Company[];
   getCompanyBranches: () => Branch[];
   getCompanyWarehouses: () => OrgWarehouse[];
+  getEffectivePermissions: () => EffectivePermission[];
   isFeatureEnabled: (key: string) => boolean;
 }
 
@@ -92,6 +96,7 @@ async function applySession(
     currentWarehouseId: session.warehouseId ?? "",
     currentSiteKind: session.siteKind,
     featureFlags: flags,
+    userPermissions: session.permissions,
     previewRoleId: null,
   });
 }
@@ -113,6 +118,7 @@ export const useAppStore = create<AppState>()(
       currentSiteKind: "branch",
       previewRoleId: null,
       featureFlags: getDefaultFeatureFlags(COMPANY_AL_SAQIYA),
+      userPermissions: mergeEffectivePermissions("role-auditor", []),
       sidebarCollapsed: false,
 
       loginWithPassword: async (email, password) => {
@@ -210,6 +216,15 @@ export const useAppStore = create<AppState>()(
       getEffectiveRoleId: () =>
         get().previewRoleId ?? get().currentUser?.role_id ?? "role-auditor",
 
+      getEffectivePermissions: () => {
+        const state = get();
+        const roleId = state.previewRoleId ?? state.currentUser?.role_id ?? "role-auditor";
+        if (state.previewRoleId) {
+          return mergeEffectivePermissions(roleId, []);
+        }
+        return state.userPermissions;
+      },
+
       getCurrentOrganization: () =>
         get().organizations.find((o) => o.id === get().currentOrganizationId),
 
@@ -236,7 +251,10 @@ export const useAppStore = create<AppState>()(
         get().warehouses.filter((w) => w.company_id === get().currentCompanyId),
 
       isFeatureEnabled: (key) => {
-        const flag = get().featureFlags.find((f) => f.key === key);
+        const state = get();
+        const roleId = state.previewRoleId ?? state.currentUser?.role_id ?? "";
+        if (roleId === "role-super") return true;
+        const flag = state.featureFlags.find((f) => f.key === key);
         return flag?.enabled ?? false;
       },
     }),

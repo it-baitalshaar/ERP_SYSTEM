@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Key, Plus } from "lucide-react";
+import { Key, Plus, Shield } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { Button } from "@/components/ui/button";
@@ -47,8 +47,17 @@ type ResetRequest = {
   created_at: string;
 };
 
+type AccessPayload = {
+  user_id: string;
+  role_id: string;
+  role_modules: string[];
+  role_module_labels: { key: string; label: string }[];
+  grantable_modules: { key: string; label: string; granted: boolean }[];
+  extra_module_keys: string[];
+};
+
 export default function UserManagementPage() {
-  const { companies, branches, currentCompanyId } = useAppStore();
+  const { companies, branches, currentCompanyId, hydrateSession } = useAppStore();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
   const [open, setOpen] = useState(false);
@@ -57,6 +66,10 @@ export default function UserManagementPage() {
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [accessUser, setAccessUser] = useState<UserRow | null>(null);
+  const [accessData, setAccessData] = useState<AccessPayload | null>(null);
+  const [extraModules, setExtraModules] = useState<string[]>([]);
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -175,6 +188,41 @@ export default function UserManagementPage() {
     void loadResetRequests();
   };
 
+  const openAccess = async (user: UserRow) => {
+    setAccessUser(user);
+    setAccessOpen(true);
+    const res = await fetch(`/api/admin/users/access?userId=${user.id}`);
+    if (!res.ok) {
+      toast.error("Could not load user access");
+      setAccessOpen(false);
+      return;
+    }
+    const json = (await res.json()) as AccessPayload;
+    setAccessData(json);
+    setExtraModules(json.extra_module_keys);
+  };
+
+  const handleSaveAccess = async () => {
+    if (!accessUser) return;
+    setSaving(true);
+    const res = await fetch("/api/admin/users/access", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: accessUser.id, module_keys: extraModules }),
+    });
+    const json = (await res.json()) as { error?: string; session?: unknown };
+    setSaving(false);
+    if (!res.ok) {
+      toast.error(json.error ?? "Failed to save access");
+      return;
+    }
+    toast.success("Module access updated");
+    setAccessOpen(false);
+    if (json.session) {
+      await hydrateSession();
+    }
+  };
+
   const columns: ColumnDef<UserRow>[] = [
     { accessorKey: "full_name", header: "Name" },
     { accessorKey: "email", header: "Email / Username" },
@@ -192,19 +240,29 @@ export default function UserManagementPage() {
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setResetUser(row.original);
-            setResetRequest(null);
-            setNewPassword("");
-            setResetOpen(true);
-          }}
-        >
-          <Key className="mr-1 h-3 w-3" />
-          Reset password
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void openAccess(row.original)}
+          >
+            <Shield className="mr-1 h-3 w-3" />
+            Access
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setResetUser(row.original);
+              setResetRequest(null);
+              setNewPassword("");
+              setResetOpen(true);
+            }}
+          >
+            <Key className="mr-1 h-3 w-3" />
+            Reset password
+          </Button>
+        </div>
       ),
     },
   ];
@@ -287,11 +345,12 @@ export default function UserManagementPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email (login username)</Label>
+              <Label>Username or email (login)</Label>
               <Input
-                type="email"
+                type="text"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="e.g. SA0038"
               />
             </div>
             <div className="space-y-2">
@@ -364,6 +423,80 @@ export default function UserManagementPage() {
             </Button>
             <Button onClick={() => void handleCreate()} disabled={saving}>
               {saving ? "Creating…" : "Create user"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={accessOpen} onOpenChange={setAccessOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Module access</DialogTitle>
+          </DialogHeader>
+          {accessUser && accessData && (
+            <div className="space-y-4 text-sm">
+              <p>
+                <span className="font-medium">{accessUser.full_name}</span>
+                <span className="text-muted-foreground"> — {accessUser.role}</span>
+              </p>
+
+              <div className="space-y-2">
+                <Label>Included with role (always on)</Label>
+                <div className="flex flex-wrap gap-1">
+                  {accessData.role_module_labels.length === 0 ? (
+                    <span className="text-muted-foreground">Full access (admin role)</span>
+                  ) : (
+                    accessData.role_module_labels.map((m) => (
+                      <Badge key={m.key} variant="secondary">
+                        {m.label}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {accessData.grantable_modules.length > 0 ? (
+                <div className="space-y-2">
+                  <Label>Enable additional modules for this user</Label>
+                  <div className="grid gap-2 rounded-md border p-3">
+                    {accessData.grantable_modules.map((m) => (
+                      <label key={m.key} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={extraModules.includes(m.key)}
+                          onCheckedChange={(checked) => {
+                            setExtraModules((prev) =>
+                              checked
+                                ? [...prev, m.key]
+                                : prev.filter((k) => k !== m.key)
+                            );
+                          }}
+                        />
+                        {m.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  This role already has full module access. No extra grants needed.
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                Sidebar menus are filtered by role defaults plus any extra modules you enable
+                here. Company feature flags must also be on for a module to appear.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAccessOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void handleSaveAccess()}
+              disabled={saving || !accessData?.grantable_modules.length}
+            >
+              {saving ? "Saving…" : "Save access"}
             </Button>
           </DialogFooter>
         </DialogContent>

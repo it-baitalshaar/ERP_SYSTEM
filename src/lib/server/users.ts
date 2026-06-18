@@ -95,8 +95,12 @@ function mapWarehouse(row: {
   };
 }
 
+import type { EffectivePermission } from "@/lib/role-permissions";
+import { loadEffectivePermissions } from "@/lib/server/permissions";
+
 export interface SessionPayload {
   user: User;
+  permissions: EffectivePermission[];
   organizations: Organization[];
   companies: Company[];
   branches: Branch[];
@@ -225,8 +229,11 @@ export async function buildSessionForUserId(
         ? "branch"
         : "warehouse");
 
+  const permissions = await loadEffectivePermissions(db, profile.id, profile.role_id);
+
   return {
     user,
+    permissions,
     organizations: organizations.length
       ? organizations
       : mockOrganizations.filter((o) => organizationIds.includes(o.id)),
