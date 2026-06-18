@@ -117,3 +117,24 @@ Keep each migration additive and named with sequential numeric prefixes.
 Add a `## 8. Supabase Schema Status` section to `PROGRESS_INDEX.md` at that
 point, tracking which tables/RLS policies are done — same status-table
 format as §2.
+
+---
+
+## 6. Project structure (always keep tidy)
+
+The project must stay **well structured** — no scattered logic, no duplicate
+API routes, no business rules in page components.
+
+**Enforced by:** `.cursor/rules/erp-project-structure.mdc` (always apply in Cursor).
+
+| Layer | Location |
+|---|---|
+| UI pages | `src/app/(app)/<module>/<entity>/page.tsx` |
+| Client fetch | `src/lib/data/<module>.ts` |
+| API | `src/app/api/<module>/route.ts` (`resource` param) |
+| Server / DB | `src/lib/server/<module>.ts` |
+| Schema | `supabase/migrations/NNNN_<name>.sql` |
+| Module spec | `docs/<MODULE>_FLOW.md` when non-trivial |
+
+When adding a module, mirror the nearest completed one (Sales → Procurement).
+Update §2 and §7 in `PROGRESS_INDEX.md` before ending the session.

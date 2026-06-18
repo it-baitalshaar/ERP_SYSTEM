@@ -36,35 +36,6 @@ export const simpleModulePages: Record<string, ModulePageConfig> = {
       { name: "Cement Bulk 5%", discount: "5%", period: "Jul 1 – Jul 31" },
     ]),
   },
-  "/procurement/requisitions": {
-    title: "Purchase Requisitions",
-    description: "Request → Approval → PO workflow",
-    columns: [
-      { accessorKey: "number", header: "PR Number" },
-      { accessorKey: "requested_by", header: "Requested By" },
-      { accessorKey: "status", header: "Status" },
-      { accessorKey: "total", header: "Total" },
-    ],
-    data: sample([
-      { number: "PR-DXB-2026-00034", requested_by: "Warehouse Team", status: "pending_approval", total: "AED 12,500" },
-      { number: "PR-DXB-2026-00035", requested_by: "Sales", status: "approved", total: "AED 8,200" },
-    ]),
-    searchKey: "number",
-  },
-  "/procurement/orders": {
-    title: "Purchase Orders (LPO)",
-    description: "Electronic purchase orders with multi-currency support",
-    columns: [
-      { accessorKey: "number", header: "PO Number" },
-      { accessorKey: "supplier", header: "Supplier" },
-      { accessorKey: "currency", header: "Currency" },
-      { accessorKey: "total", header: "Total" },
-    ],
-    data: sample([
-      { number: "PO-DXB-2026-00078", supplier: "Gulf Cement Co.", currency: "AED", total: "AED 45,000" },
-      { number: "PO-DXB-2026-00079", supplier: "China Tiles Ltd", currency: "USD", total: "USD 28,500" },
-    ]),
-  },
   "/procurement/rfq": {
     title: "Vendor Comparison / RFQ",
     description: "Compare supplier quotes per item",
@@ -75,41 +46,6 @@ export const simpleModulePages: Record<string, ModulePageConfig> = {
       { accessorKey: "supplier_b", header: "Supplier B" },
     ],
     data: sample([{ item: "Ceramic Tiles", supplier_a: "AED 82", supplier_b: "AED 79" }]),
-  },
-  "/procurement/goods-receipt": {
-    title: "Goods Receipt",
-    description: "Inbound delivery — triggers inventory increase",
-    columns: [
-      { accessorKey: "number", header: "GR Number" },
-      { accessorKey: "po", header: "PO Ref" },
-      { accessorKey: "date", header: "Date" },
-      { accessorKey: "status", header: "Status" },
-    ],
-    data: sample([{ number: "GR-DXB-2026-00045", po: "PO-DXB-2026-00078", date: "2026-06-10", status: "posted" }]),
-  },
-  "/procurement/supplier-invoices": {
-    title: "Supplier Invoices",
-    description: "Generated from goods receipts",
-    columns: [
-      { accessorKey: "number", header: "Invoice" },
-      { accessorKey: "supplier", header: "Supplier" },
-      { accessorKey: "total", header: "Total" },
-    ],
-    data: sample([{ number: "SINV-2026-0012", supplier: "Gulf Cement Co.", total: "AED 45,000" }]),
-  },
-  "/procurement/suppliers": {
-    title: "Suppliers",
-    description: "Supplier directory with payment terms",
-    columns: [
-      { accessorKey: "name", header: "Supplier" },
-      { accessorKey: "terms", header: "Payment Terms" },
-      { accessorKey: "classification", header: "Class" },
-    ],
-    data: sample([
-      { name: "Gulf Cement Co.", terms: "Net 30", classification: "Local" },
-      { name: "China Tiles Ltd", terms: "LC 60 days", classification: "Import" },
-    ]),
-    searchKey: "name",
   },
   "/inventory/items": {
     title: "Items / Products",

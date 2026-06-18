@@ -2,46 +2,52 @@
 Last updated: 2026-06-16 by Cursor Agent
 
 ## 1. Status Snapshot
-- Phase: 2 started (Supabase schema + Sales module wired)
+- Phase: 2 — Supabase + Sales + Procurement wired
 - Stack: Next.js 15 + TS + Tailwind + shadcn + Zustand + Supabase
-- Backend: Supabase clients + migrations; Sales read paths live
+- Backend: Migrations through `0010_procurement.sql`; Sales + Procurement API live
+- Structure: `.cursor/rules/erp-project-structure.mdc` (always apply)
 
 ## 2. Module Build Status
 | Module | Route | Status | Notes |
 |---|---|---|---|
-| Sales (customers, orders, invoices) | /sales/* | in-progress | Reads from Supabase with mock fallback |
-| Company feature defaults | Admin + store | done | Business-line drives default flags (PRD §5) |
-| Auth | /login | done | Supabase password auth + middleware |
-| Admin company rename | /admin/companies | done | Editable name → Supabase `companies` |
-| (other modules) | … | done shell | Unchanged Phase 1 shells |
+| Sales (customers, orders, invoices) | /sales/* | in-progress | CRUD + approve/convert flows |
+| Procurement (full purchase cycle) | /procurement/* | in-progress | MR→LPO→PFI→SDN→MRN→SINV→PAY; see `docs/PROCUREMENT_FLOW.md` |
+| Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
+| User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
+| Auth + platform init | /login, /itbaitalshaar | done | Username or email login |
+| (other modules) | … | shell / coming-soon | Phase 1 shells unchanged |
 
 ## 3. Feature Flags Implemented
 - [x] Business-line defaults (`src/lib/feature-flags.ts`)
-- [x] Trading → sales/procurement/inventory/finance/ecommerce
-- [x] Construction + Real Estate → respective modules + shared core
-- [x] Logistics → logistics module group
-- [x] Admin toggles persist to `feature_flags` table
-- [x] Sidebar reacts to flags + business_line nav gating
+- [x] Admin toggles → `feature_flags` table
+- [x] Sidebar: flags + role permissions + `user_module_permissions`
+- [x] Super Admin: full nav, all flags treated enabled
 
-## 4. Companies (seed)
-| Company | Business lines | Default modules |
-|---|---|---|
-| AL SAQIYA TRADING | trading | Sales, Procurement, Inventory, Finance, … |
-| Bait Al-Shaar General Contracting and Maintenance | construction, real_estate | Construction, Real Estate, shared core |
+## 4. RBAC Implemented
+- [x] Role defaults (`src/lib/role-permissions.ts`) — cashier/sales → sales only
+- [x] Per-user module grants (`0009_user_module_permissions.sql`)
+- [x] Super Admin bypasses nav and feature checks
 
-## 5. Users (AL SAQIYA — seed via `scripts/seed-auth-users.ts`)
-| Email | Role |
+## 5. Key Docs
+| File | Purpose |
 |---|---|
-| admin@alsaqiya.ae | Super Admin |
-| sales@alsaqiya.ae | Salesperson |
-| cashier@alsaqiya.ae | Cashier |
-| accountant@alsaqiya.ae | Accountant |
+| `docs/PROCUREMENT_FLOW.md` | Purchase cycle spec (MR → payment) |
+| `.cursor/rules/erp-project-structure.mdc` | Layering, naming, no-mess rules |
+| `03_AI_INDEX_RULES.md` | How to maintain this index |
 
-## 6. Supabase Schema Status
-| Migration | Status |
-|---|---|
-| 0001_init.sql | ready — companies, RBAC, feature_flags, sales tables, RLS |
-| 0002_seed_users.sql | ready — run after Auth users created |
+## 6. Known Gaps / Coming Soon
+- RFQ / vendor comparison — nav `coming_soon` only
+- MRN → inventory stock post (needs Inventory module)
+- 3-way match UI validation (LPO vs MRN vs SINV)
+- Purchase returns / debit notes, landed cost
 
 ## 7. Next Session Should Start With
-- Run migrations on Supabase project, seed auth users, verify Sales CRUD write paths (create quotation/SO).
+- Run `0010_procurement.sql` on Supabase if not applied; smoke-test MR → LPO → MRN → payment flow end-to-end.
+
+## 8. Supabase Schema Status
+| Migration | Status |
+|---|---|
+| 0001_init.sql | ready |
+| 0002_seed_users.sql | ready (after Auth users) |
+| 0003–0009 | org, password reset, backups, data ops, user module perms |
+| 0010_procurement.sql | ready — suppliers, MR, LPO, PFI, SDN, MRN, SINV, payments |

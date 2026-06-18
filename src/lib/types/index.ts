@@ -100,7 +100,38 @@ export interface Supplier {
   phone: string;
   payment_terms: string;
   classification: string;
+  currency: string;
+  credit_days: number;
+  is_blocked: boolean;
 }
+
+export type PurchasePaymentTerms = "advance" | "on_delivery" | "credit";
+export type PurchasePaymentType = "advance" | "on_delivery" | "partial" | "final" | "credit";
+
+export interface PriceUpdateLine {
+  item_id: string;
+  item_name: string;
+  old_unit_price: number;
+  new_unit_price: number;
+}
+
+/** Material request — step 1 (authorize before purchase). */
+export interface MaterialRequest {
+  id: string;
+  company_id: string;
+  branch_id: string;
+  number: string;
+  date: string;
+  requested_by: string;
+  requester_name?: string;
+  warehouse_id?: string;
+  status: DocumentStatus;
+  lines: LineItem[];
+  total: number;
+  notes?: string;
+}
+
+export interface PurchaseRequisition extends MaterialRequest {}
 
 export interface UomConversion {
   uom: string;
@@ -212,17 +243,7 @@ export interface DeliveryNote {
   lines: LineItem[];
 }
 
-export interface PurchaseRequisition {
-  id: string;
-  company_id: string;
-  branch_id: string;
-  number: string;
-  date: string;
-  requested_by: string;
-  status: DocumentStatus;
-  lines: LineItem[];
-  total: number;
-}
+export interface PurchaseRequisition extends MaterialRequest {}
 
 export interface PurchaseOrder {
   id: string;
@@ -230,23 +251,68 @@ export interface PurchaseOrder {
   branch_id: string;
   supplier_id: string;
   supplier_name: string;
+  material_request_id?: string;
   number: string;
   date: string;
+  currency: string;
+  payment_terms_type: PurchasePaymentTerms;
+  status: DocumentStatus;
+  lines: LineItem[];
+  total: number;
+  expected_delivery?: string;
+  notes?: string;
+}
+
+export interface ProformaInvoice {
+  id: string;
+  company_id: string;
+  purchase_order_id: string;
+  purchase_order_number?: string;
+  supplier_id: string;
+  supplier_name: string;
+  number: string;
+  date: string;
+  supplier_reference?: string;
   currency: string;
   status: DocumentStatus;
   lines: LineItem[];
   total: number;
 }
 
-export interface GoodsReceipt {
+export interface SupplierDeliveryNote {
   id: string;
   company_id: string;
-  branch_id: string;
-  po_id: string;
+  purchase_order_id: string;
+  purchase_order_number?: string;
+  supplier_id: string;
+  supplier_name: string;
+  number: string;
+  date: string;
+  status: DocumentStatus;
+  carrier?: string;
+  lines: LineItem[];
+  notes?: string;
+}
+
+/** MRN — material receipt note (goods inward + price updation). */
+export interface MaterialReceiptNote {
+  id: string;
+  company_id: string;
+  purchase_order_id: string;
+  purchase_order_number?: string;
+  delivery_note_id?: string;
+  warehouse_id?: string;
   number: string;
   date: string;
   status: DocumentStatus;
   lines: LineItem[];
+  price_updates: PriceUpdateLine[];
+  total: number;
+}
+
+export interface GoodsReceipt extends MaterialReceiptNote {
+  branch_id: string;
+  po_id: string;
 }
 
 export interface SupplierInvoice {
@@ -255,11 +321,33 @@ export interface SupplierInvoice {
   branch_id: string;
   supplier_id: string;
   supplier_name: string;
-  gr_id: string;
+  purchase_order_id?: string;
+  mrn_id?: string;
+  gr_id?: string;
   number: string;
   date: string;
   status: DocumentStatus;
+  lines: LineItem[];
+  subtotal: number;
+  vat_amount: number;
   total: number;
+  is_paid: boolean;
+}
+
+export interface PurchasePayment {
+  id: string;
+  company_id: string;
+  supplier_id: string;
+  supplier_name: string;
+  purchase_order_id?: string;
+  supplier_invoice_id?: string;
+  number: string;
+  date: string;
+  payment_type: PurchasePaymentType;
+  status: DocumentStatus;
+  amount: number;
+  currency: string;
+  reference?: string;
 }
 
 export interface Account {

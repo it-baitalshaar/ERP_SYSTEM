@@ -1,0 +1,59 @@
+---
+description: Keep the ERP codebase well-structured — follow on every change
+alwaysApply: true
+---
+
+# ERP project structure rules
+
+## Architecture layers (strict order)
+
+1. **UI** — `src/app/(app)/**/page.tsx` — layout, tables, dialogs only; no direct Supabase
+2. **Client data** — `src/lib/data/<module>.ts` — fetch wrappers, mock fallback
+3. **API** — `src/app/api/<module>/route.ts` — auth, validation, call server
+4. **Server** — `src/lib/server/<module>.ts` — database, business rules, mappers
+5. **Schema** — `supabase/migrations/` — additive, numbered SQL files
+
+Never skip layers. Never call `createAdminClient` from React components.
+
+## Module layout
+
+Each business module (sales, procurement, inventory) uses:
+
+- One server file: `src/lib/server/<module>.ts`
+- One API route: `src/app/api/<module>/route.ts` with `resource` query/body param
+- Pages under `src/app/(app)/<module>/<entity>/page.tsx`
+- Shared UI: `src/components/<module>/` and `src/components/modules/<module>-shared.tsx`
+- Types in `src/lib/types/index.ts` (or `types/<module>.ts` if file grows >300 lines)
+
+## Naming
+
+- Tables: `snake_case`, plural (`purchase_orders`, `material_receipt_notes`)
+- API resources: `snake_case` plural (`material_requests`, `purchase_orders`)
+- React components: `PascalCase`
+- Server functions: `verbNoun` (`createPurchaseOrder`, `mapSupplier`)
+
+## Migrations
+
+- Sequential prefix: `0010_`, `0011_`, …
+- Idempotent where possible (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`)
+- One concern per file; document in `PROGRESS_INDEX.md` §8
+
+## Permissions & flags
+
+- Sidebar: role permissions + feature flags (`mod_procurement`, etc.)
+- Super Admin (`role-super`): full nav, no flag restrictions
+- Per-user grants: `user_module_permissions` table only for **extra** modules
+
+## What not to do
+
+- No new mock-only pages when DB path exists — wire API or mark `coming-soon` in nav
+- No duplicate calculation logic — reuse `src/lib/sales/calculations.ts` for line totals until extracted to `lib/documents/calculations.ts`
+- No god files >500 lines without splitting
+- No committing `.env.local` or secrets
+- Update `PROGRESS_INDEX.md` after each module milestone (§2, §7, §8)
+
+## Session start checklist
+
+1. Read `PROGRESS_INDEX.md`
+2. Read module doc if exists (`docs/PROCUREMENT_FLOW.md`)
+3. Match patterns from the nearest completed module (Sales)
