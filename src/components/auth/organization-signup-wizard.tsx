@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Select,
   SelectContent,
@@ -290,9 +291,8 @@ export function OrganizationSignupWizard({
           </div>
           <div className="space-y-2">
             <Label htmlFor="admin_password">Password</Label>
-            <Input
+            <PasswordInput
               id="admin_password"
-              type="password"
               value={admin.password}
               onChange={(e) => setAdmin({ ...admin, password: e.target.value })}
               minLength={6}
@@ -301,9 +301,8 @@ export function OrganizationSignupWizard({
           </div>
           <div className="space-y-2">
             <Label htmlFor="admin_confirm">Confirm password</Label>
-            <Input
+            <PasswordInput
               id="admin_confirm"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={6}

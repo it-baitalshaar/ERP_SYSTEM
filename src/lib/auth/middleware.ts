@@ -3,9 +3,11 @@ import { SESSION_COOKIE, verifySessionTokenSafe } from "@/lib/auth/session";
 
 const PUBLIC_PREFIXES = [
   "/login",
+  "/forgot-password",
   "/setup",
   "/signup",
   "/api/auth/login",
+  "/api/auth/forgot-password",
   "/api/auth/session",
   "/api/auth/setup",
   "/api/auth/setup-status",
@@ -33,7 +35,7 @@ export async function updateAppSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (session && (pathname.startsWith("/login") || pathname.startsWith("/setup"))) {
+  if (session && (pathname.startsWith("/login") || pathname.startsWith("/setup") || pathname.startsWith("/forgot-password"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

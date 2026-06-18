@@ -101,3 +101,64 @@ export async function POST(request: Request) {
     user: { id: userId, email, full_name, role_id },
   });
 }
+
+export async function PATCH(request: Request) {
+  const token = await getSessionFromCookies();
+  if (!token || !isAdminRole(token.role_id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = (await request.json()) as {
+    id?: string;
+    action?: string;
+    password?: string;
+    is_active?: boolean;
+  };
+
+  const userId = body.id;
+  if (!userId) {
+    return NextResponse.json({ error: "User id is required" }, { status: 400 });
+  }
+
+  const db = createAdminClientOrNull();
+  if (!db) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  if (body.action === "reset_password") {
+    const password = body.password ?? "";
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
+    }
+
+    const password_hash = await hashPassword(password);
+    const { error } = await db
+      .from("profiles")
+      .update({ password_hash })
+      .eq("id", userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.is_active !== undefined) {
+    const { error } = await db
+      .from("profiles")
+      .update({ is_active: body.is_active })
+      .eq("id", userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}

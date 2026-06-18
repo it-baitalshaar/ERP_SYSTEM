@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Menu, Search, UserCog } from "lucide-react";
+import { Bell, LogOut, Menu, Search, Settings, UserCog } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,6 +175,10 @@ export function TopBar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Account settings
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/signup/organization")}>
               Register new organization
             </DropdownMenuItem>

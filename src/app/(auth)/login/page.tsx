@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
@@ -72,13 +73,21 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground underline underline-offset-2"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -92,10 +101,6 @@ export default function LoginPage() {
               First time after a database reset?{" "}
               <Link href="/setup" className="underline underline-offset-2">
                 Initial organization setup
-              </Link>
-              {" · "}
-              <Link href="/signup/organization" className="underline underline-offset-2">
-                Register another organization
               </Link>
             </p>
           </form>
