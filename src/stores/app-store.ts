@@ -34,6 +34,16 @@ import {
 import { upsertFeatureFlag } from "@/lib/data/feature-flags";
 import type { SessionPayload } from "@/lib/server/users";
 
+export interface PreviewUserSnapshot {
+  userId: string;
+  fullName: string;
+  roleId: string;
+  roleName: string;
+  permissions: EffectivePermission[];
+  roleModules: string[];
+  extraModules: string[];
+}
+
 interface AppState {
   isAuthenticated: boolean;
   isHydrated: boolean;
@@ -48,6 +58,7 @@ interface AppState {
   currentWarehouseId: string;
   currentSiteKind: SiteKind;
   previewRoleId: string | null;
+  previewUser: PreviewUserSnapshot | null;
   featureFlags: FeatureFlag[];
   userPermissions: EffectivePermission[];
   sidebarCollapsed: boolean;
@@ -59,6 +70,9 @@ interface AppState {
   setBranch: (branchId: string) => void;
   setWarehouse: (warehouseId: string) => void;
   setPreviewRole: (roleId: string | null) => void;
+  setPreviewUser: (snapshot: PreviewUserSnapshot | null) => void;
+  clearPreview: () => void;
+  isPreviewActive: () => boolean;
   toggleFeatureFlag: (key: string) => Promise<void>;
   refreshCompanies: (companies: Company[]) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -98,6 +112,7 @@ async function applySession(
     featureFlags: flags,
     userPermissions: session.permissions,
     previewRoleId: null,
+    previewUser: null,
   });
 }
 
@@ -117,6 +132,7 @@ export const useAppStore = create<AppState>()(
       currentWarehouseId: "",
       currentSiteKind: "branch",
       previewRoleId: null,
+      previewUser: null,
       featureFlags: getDefaultFeatureFlags(COMPANY_AL_SAQIYA),
       userPermissions: mergeEffectivePermissions("role-auditor", []),
       sidebarCollapsed: false,
@@ -136,6 +152,7 @@ export const useAppStore = create<AppState>()(
           isAuthenticated: false,
           currentUser: null,
           previewRoleId: null,
+          previewUser: null,
         });
       },
 
@@ -194,7 +211,16 @@ export const useAppStore = create<AppState>()(
       setWarehouse: (warehouseId) =>
         set({ currentWarehouseId: warehouseId, currentSiteKind: "warehouse" }),
 
-      setPreviewRole: (roleId) => set({ previewRoleId: roleId }),
+      setPreviewRole: (roleId) => set({ previewRoleId: roleId, previewUser: null }),
+
+      setPreviewUser: (snapshot) => set({ previewUser: snapshot, previewRoleId: null }),
+
+      clearPreview: () => set({ previewRoleId: null, previewUser: null }),
+
+      isPreviewActive: () => {
+        const state = get();
+        return !!(state.previewRoleId || state.previewUser);
+      },
 
       toggleFeatureFlag: async (key) => {
         const state = get();
@@ -213,14 +239,17 @@ export const useAppStore = create<AppState>()(
 
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
-      getEffectiveRoleId: () =>
-        get().previewRoleId ?? get().currentUser?.role_id ?? "role-auditor",
+      getEffectiveRoleId: () => {
+        const state = get();
+        if (state.previewUser) return state.previewUser.roleId;
+        return state.previewRoleId ?? state.currentUser?.role_id ?? "role-auditor";
+      },
 
       getEffectivePermissions: () => {
         const state = get();
-        const roleId = state.previewRoleId ?? state.currentUser?.role_id ?? "role-auditor";
+        if (state.previewUser) return state.previewUser.permissions;
         if (state.previewRoleId) {
-          return mergeEffectivePermissions(roleId, []);
+          return mergeEffectivePermissions(state.previewRoleId, []);
         }
         return state.userPermissions;
       },
@@ -252,8 +281,11 @@ export const useAppStore = create<AppState>()(
 
       isFeatureEnabled: (key) => {
         const state = get();
-        const roleId = state.previewRoleId ?? state.currentUser?.role_id ?? "";
-        if (roleId === "role-super") return true;
+        const previewActive = !!(state.previewRoleId || state.previewUser);
+        const actualRole = state.currentUser?.role_id ?? "";
+
+        if (!previewActive && actualRole === "role-super") return true;
+
         const flag = state.featureFlags.find((f) => f.key === key);
         return flag?.enabled ?? false;
       },
