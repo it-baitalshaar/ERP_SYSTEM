@@ -47,35 +47,6 @@ export const simpleModulePages: Record<string, ModulePageConfig> = {
     ],
     data: sample([{ item: "Ceramic Tiles", supplier_a: "AED 82", supplier_b: "AED 79" }]),
   },
-  "/inventory/items": {
-    title: "Items / Products",
-    description: "Product catalog with SKU, multi-UOM, categories",
-    columns: [
-      { accessorKey: "sku", header: "SKU" },
-      { accessorKey: "name", header: "Name" },
-      { accessorKey: "uom", header: "Base UOM" },
-      { accessorKey: "price", header: "Unit Price" },
-    ],
-    data: sample([
-      { sku: "TILE-6060-WHT", name: "Ceramic Tiles 60x60", uom: "box", price: "AED 85" },
-      { sku: "CEM-PORT-50", name: "Portland Cement 50kg", uom: "bag", price: "AED 22" },
-    ]),
-    searchKey: "name",
-  },
-  "/inventory/stock-levels": {
-    title: "Stock Levels",
-    description: "Per-warehouse stock with reorder levels",
-    columns: [
-      { accessorKey: "item", header: "Item" },
-      { accessorKey: "warehouse", header: "Warehouse" },
-      { accessorKey: "on_hand", header: "On Hand" },
-      { accessorKey: "reserved", header: "Reserved" },
-    ],
-    data: sample([
-      { item: "Ceramic Tiles 60x60", warehouse: "DXB Main", on_hand: 850, reserved: 200 },
-      { item: "Portland Cement 50kg", warehouse: "DXB Main", on_hand: 320, reserved: 50 },
-    ]),
-  },
   "/inventory/transfers": {
     title: "Warehouse Transfers",
     description: "Request → approval workflow",

@@ -6,6 +6,7 @@ import {
   getCustomerOrThrow,
   invoiceInsertPayload,
   mapCustomer,
+  mapDeliveryNote,
   mapQuotation,
   mapSalesOrder,
   mapTaxInvoice,
@@ -15,8 +16,10 @@ import {
   resolveBranchCode,
   salesOrderInsertPayload,
 } from "@/lib/server/sales";
+import { postDeliveryNoteToInventory } from "@/lib/server/inventory";
 import type { DocumentStatus, LineItem } from "@/lib/types";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
+import { randomUUID } from "crypto";
 
 async function requireSession() {
   const token = await getSessionFromCookies();
@@ -77,6 +80,16 @@ export async function GET(request: Request) {
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapTaxInvoice) });
+    }
+
+    if (resource === "delivery_notes") {
+      const { data, error } = await db
+        .from("delivery_notes")
+        .select("*, tax_invoices(number, customers(name))")
+        .eq("company_id", companyId)
+        .order("date", { ascending: false });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ data: (data ?? []).map(mapDeliveryNote) });
     }
 
     return NextResponse.json({ error: "Unknown resource" }, { status: 400 });
@@ -467,6 +480,89 @@ export async function PATCH(request: Request) {
           .single();
         if (error) return NextResponse.json({ error: "Only posted invoices can be marked paid" }, { status: 400 });
         return NextResponse.json({ data: mapTaxInvoice(data) });
+      }
+
+      if (action === "create_delivery_note") {
+        const { data: invoice, error: fetchError } = await db
+          .from("tax_invoices")
+          .select("*")
+          .eq("id", id)
+          .eq("company_id", companyId)
+          .single();
+
+        if (fetchError || !invoice) {
+          return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+        }
+        if (invoice.status !== "posted") {
+          return NextResponse.json({ error: "Only posted invoices can have delivery notes" }, { status: 400 });
+        }
+
+        const branchCode = await resolveBranchCode(db, invoice.branch_id);
+        const number = await nextDocumentNumber(db, "delivery_notes", companyId, branchCode, "DN");
+        const lines = (invoice.lines as LineItem[]) ?? [];
+        const warehouseId = body.warehouse_id ? String(body.warehouse_id) : null;
+
+        const { data, error } = await db
+          .from("delivery_notes")
+          .insert({
+            id: randomUUID(),
+            company_id: companyId,
+            branch_id: invoice.branch_id,
+            invoice_id: invoice.id,
+            warehouse_id: warehouseId,
+            number,
+            date: new Date().toISOString().slice(0, 10),
+            status: "draft" satisfies DocumentStatus,
+            lines: warehouseId
+              ? lines.map((l) => ({ ...l, warehouse_id: l.warehouse_id ?? warehouseId }))
+              : lines,
+          })
+          .select("*, tax_invoices(number, customers(name))")
+          .single();
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ data: mapDeliveryNote(data) });
+      }
+    }
+
+    if (resource === "delivery_notes") {
+      if (action === "post") {
+        const { data: note, error: fetchError } = await db
+          .from("delivery_notes")
+          .select("*")
+          .eq("id", id)
+          .eq("company_id", companyId)
+          .single();
+
+        if (fetchError || !note) {
+          return NextResponse.json({ error: "Delivery note not found" }, { status: 404 });
+        }
+        if (note.status !== "draft") {
+          return NextResponse.json({ error: "Only draft delivery notes can be posted" }, { status: 400 });
+        }
+
+        try {
+          await postDeliveryNoteToInventory(db, companyId, {
+            id: note.id,
+            number: note.number,
+            warehouse_id: note.warehouse_id,
+            lines: (note.lines as LineItem[]) ?? [],
+          });
+        } catch (stockErr) {
+          const message = stockErr instanceof Error ? stockErr.message : "Stock update failed";
+          return NextResponse.json({ error: message }, { status: 400 });
+        }
+
+        const { data, error } = await db
+          .from("delivery_notes")
+          .update({ status: "posted" satisfies DocumentStatus })
+          .eq("id", id)
+          .eq("company_id", companyId)
+          .select("*, tax_invoices(number, customers(name))")
+          .single();
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ data: mapDeliveryNote(data) });
       }
     }
 

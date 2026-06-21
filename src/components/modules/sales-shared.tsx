@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
-import type { Quotation, SalesOrder, TaxInvoice } from "@/lib/types";
+import type { DeliveryNote, Quotation, SalesOrder, TaxInvoice } from "@/lib/types";
 
 export const formatAed = (n: number) => `AED ${n.toLocaleString()}`;
 
@@ -91,5 +91,17 @@ export const invoiceColumns: ColumnDef<TaxInvoice>[] = [
     accessorKey: "e_invoice_status",
     header: "E-Invoice",
     cell: ({ row }) => row.original.e_invoice_status ?? "—",
+  },
+];
+
+export const deliveryNoteColumns: ColumnDef<DeliveryNote>[] = [
+  { accessorKey: "number", header: "Number" },
+  { accessorKey: "invoice_number", header: "Invoice" },
+  { accessorKey: "customer_name", header: "Customer" },
+  { accessorKey: "date", header: "Date" },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
 ];

@@ -167,6 +167,15 @@ export interface StockLevel {
   reorder_level: number;
 }
 
+export interface StockLevelRow extends StockLevel {
+  id: string;
+  company_id: string;
+  item_name: string;
+  item_sku: string;
+  warehouse_name: string;
+  warehouse_code: string;
+}
+
 export type DocumentStatus =
   | "draft"
   | "pending_approval"
@@ -237,6 +246,9 @@ export interface DeliveryNote {
   company_id: string;
   branch_id: string;
   invoice_id: string;
+  invoice_number?: string;
+  customer_name?: string;
+  warehouse_id?: string;
   number: string;
   date: string;
   status: DocumentStatus;

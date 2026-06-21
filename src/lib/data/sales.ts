@@ -1,5 +1,6 @@
 import type {
   Customer,
+  DeliveryNote,
   LineItem,
   Quotation,
   SalesOrder,
@@ -51,6 +52,12 @@ export async function fetchSalesOrders(companyId: string): Promise<SalesOrder[]>
   const { data, fromApi } = await fetchSalesResource<SalesOrder>(companyId, "orders");
   if (fromApi) return data;
   return mockOrders.filter((o) => o.company_id === companyId);
+}
+
+export async function fetchDeliveryNotes(companyId: string): Promise<DeliveryNote[]> {
+  const { data, fromApi } = await fetchSalesResource<DeliveryNote>(companyId, "delivery_notes");
+  if (fromApi) return data;
+  return [];
 }
 
 export async function fetchTaxInvoices(companyId: string): Promise<TaxInvoice[]> {
@@ -122,10 +129,11 @@ export async function salesAction<T>(
   resource: string,
   companyId: string,
   id: string,
-  action: string
+  action: string,
+  extra?: Record<string, unknown>
 ): Promise<{ data?: T; error?: string }> {
   return salesRequest<T>("/api/sales", {
     method: "PATCH",
-    body: JSON.stringify({ resource, company_id: companyId, id, action }),
+    body: JSON.stringify({ resource, company_id: companyId, id, action, ...extra }),
   });
 }

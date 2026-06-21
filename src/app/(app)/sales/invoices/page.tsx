@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle, Plus, Send } from "lucide-react";
+import { CheckCircle, Plus, Send, Truck } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
 export default function TaxInvoicesPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { currentCompanyId, currentBranchId, currentWarehouseId } = useAppStore();
   const [invoices, setInvoices] = useState<TaxInvoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,9 +34,14 @@ export default function TaxInvoicesPage() {
     void load();
   }, [load]);
 
-  const runAction = async (id: string, action: string, success: string) => {
+  const runAction = async (
+    id: string,
+    action: string,
+    success: string,
+    extra?: Record<string, unknown>
+  ) => {
     setActing(id);
-    const result = await salesAction<TaxInvoice>("invoices", currentCompanyId, id, action);
+    const result = await salesAction<TaxInvoice>("invoices", currentCompanyId, id, action, extra);
     setActing(null);
     if (result.error) {
       toast.error(result.error);
@@ -64,6 +69,24 @@ export default function TaxInvoicesPage() {
               >
                 <Send className="mr-1 h-3 w-3" />
                 Post
+              </Button>
+            )}
+            {inv.status === "posted" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  void runAction(
+                    inv.id,
+                    "create_delivery_note",
+                    "Delivery note created — post it to deduct stock",
+                    { warehouse_id: currentWarehouseId || undefined }
+                  )
+                }
+              >
+                <Truck className="mr-1 h-3 w-3" />
+                Delivery note
               </Button>
             )}
             {inv.status === "posted" && !inv.is_paid && (

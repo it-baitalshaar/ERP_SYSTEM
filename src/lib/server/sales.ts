@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { documentTotal, documentTotals } from "@/lib/sales/calculations";
 import type {
   Customer,
+  DeliveryNote,
   DocumentStatus,
   LineItem,
   Quotation,
@@ -42,7 +43,7 @@ export async function getCustomerOrThrow(db: Db, companyId: string, customerId: 
 
 export async function nextDocumentNumber(
   db: Db,
-  table: "quotations" | "sales_orders" | "tax_invoices",
+  table: "quotations" | "sales_orders" | "tax_invoices" | "delivery_notes",
   companyId: string,
   branchCode: string,
   prefix: string
@@ -131,6 +132,26 @@ export function mapTaxInvoice(row: Record<string, unknown>): TaxInvoice {
     total: Number(row.total),
     is_paid: Boolean(row.is_paid),
     e_invoice_status: row.e_invoice_status as TaxInvoice["e_invoice_status"],
+  };
+}
+
+export function mapDeliveryNote(row: Record<string, unknown>): DeliveryNote {
+  const invoice = row.tax_invoices as {
+    number?: string;
+    customers?: { name?: string };
+  } | null;
+  return {
+    id: String(row.id),
+    company_id: String(row.company_id),
+    branch_id: String(row.branch_id),
+    invoice_id: String(row.invoice_id),
+    invoice_number: invoice?.number,
+    customer_name: invoice?.customers?.name,
+    warehouse_id: row.warehouse_id ? String(row.warehouse_id) : undefined,
+    number: String(row.number),
+    date: String(row.date),
+    status: row.status as DocumentStatus,
+    lines: (row.lines as LineItem[]) ?? [],
   };
 }
 

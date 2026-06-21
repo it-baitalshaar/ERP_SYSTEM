@@ -301,3 +301,428 @@ A working Next.js app with:
 Refer to `02_PRD.md` for detailed feature rationale and `03_AI_INDEX_RULES.md`
 for how you (the AI builder) must track progress as you build, across
 sessions.
+
+---
+
+# 4.N Employee Self-Service (ESS) Portal (Additive Module)
+
+> Add this module without modifying existing modules. Respect feature flags, RBAC, company scope, branch scope, and Coming Soon behavior.
+
+## Purpose
+
+Provide employees with a self-service workspace separate from Admin and operational ERP screens.
+
+### Access Rules
+
+* Accessible only to authenticated employees.
+* Employee sees only own records.
+* Managers receive additional team visibility where applicable.
+* HR roles receive elevated access based on RBAC.
+
+---
+
+## ESS Dashboard
+
+Route: `/ess`
+
+Widgets:
+
+* Personal profile summary
+* Pending approvals
+* Leave balance
+* Attendance summary
+* Upcoming document expiry
+* Latest announcements
+* Open helpdesk tickets
+* Recent payslips
+* Quick actions
+
+Quick Actions:
+
+* Request Leave
+* Upload Document
+* Submit Expense
+* Create HR Request
+* Raise Helpdesk Ticket
+* View Attendance
+
+---
+
+## ESS — My Profile
+
+Route: `/ess/profile`
+
+Features:
+
+* Employee identity summary
+* Profile photo
+* Employee barcode
+* Department
+* Reporting manager
+* Team members
+* Company information
+* Employment timeline
+* Office location
+* Contact information
+* Emergency contact
+* Insurance status
+* Job description
+* Company policy attachments
+* Personal documents with expiry indicators
+
+UI:
+
+* Timeline component
+* Document cards
+* Employee org chart
+* Editable fields controlled by HR approval
+
+---
+
+## ESS — Time Off / Leave Management
+
+Route: `/ess/time-off`
+
+Features:
+
+* Leave balance cards:
+
+  * Emergency Leave
+  * Paid Leave
+  * Sick Leave
+* Request leave form
+* Calendar view
+* Leave entitlement table
+* Leave history
+* Status workflow:
+  Draft → Submitted → Approved → Rejected
+
+Controls:
+
+* Date range picker
+* Leave type selector
+* Attachment upload
+* Approval timeline
+
+---
+
+## ESS — Attendance & Overtime
+
+Route: `/ess/attendance`
+
+Widgets:
+
+* Days present
+* Hours worked
+* Average daily hours
+* Average check-in/out
+* Late arrivals
+
+Views:
+
+* Weekly bar chart
+* Monthly attendance calendar
+* Daily logs
+* Check-in location pins
+* Overtime requests
+
+---
+
+## ESS — Payslips
+
+Route: `/ess/payslips`
+
+Features:
+
+* Filter by year/month
+* Salary list
+* Gross vs Net cards
+* Detailed breakdown drawer
+* PDF preview
+* Download action
+
+---
+
+## ESS — Employee Loans
+
+Route: `/ess/loans`
+
+Features:
+
+* Loan dashboard
+* Active loans
+* Outstanding balance
+* New loan request
+* HR conversation thread
+* Loan repayment schedule
+
+Workflow:
+Draft → Submitted → Approved → Closed
+
+---
+
+## ESS — Custody / Asset Requests
+
+Route: `/ess/custody`
+
+Features:
+
+* Request company assets
+* Equipment selection
+* Handover workflow
+* Return workflow
+* Attachment support
+* Draft mode
+
+Statuses:
+Draft → Pending → Approved → Returned
+
+---
+
+## ESS — Employee Requests
+
+Route: `/ess/requests`
+
+Request Types:
+
+* Salary Certificate
+* Salary Transfer Letter
+* NOC
+* Salary Advance
+
+Features:
+
+* Arabic / English templates
+* Effective date
+* Priority
+* Attachments
+* Request tracking
+
+---
+
+## ESS — Expenses & Reimbursements
+
+Route: `/ess/expenses`
+
+Features:
+
+* Individual expense entry
+* Expense report grouping
+* Batch submission
+* PDF report export
+* Approval workflow
+* Status badges
+
+Statuses:
+Draft → Submitted → Approved → Paid → Refused
+
+---
+
+## ESS — Announcements
+
+Route: `/ess/announcements`
+
+Features:
+
+* Priority badges
+* Read acknowledgements
+* Filters:
+
+  * Unread
+  * High Priority
+  * Acknowledged
+* Dashboard unread counter
+
+---
+
+## ESS — Disciplinary Records
+
+Route: `/ess/disciplinary`
+
+Features:
+
+* Record history
+* Severity
+* Appeal submission
+* Employee acknowledgement
+* Status filtering
+
+---
+
+## ESS — Company Directory
+
+Route: `/ess/directory`
+
+Features:
+
+* Search employees
+* Department filters
+* Contact actions
+* Reporting hierarchy
+* Employee cards
+
+---
+
+## ESS — Holiday Calendar
+
+Route: `/ess/calendar`
+
+Features:
+
+* Unified calendar:
+
+  * Public holidays
+  * Leave
+  * Pending requests
+* Leave balances
+* Recent requests
+* Calendar legend
+
+---
+
+## ESS — Training Center / LMS
+
+Route: `/ess/training`
+
+Tabs:
+
+* Course Catalog
+* My Learning
+
+Features:
+
+* Search
+* Category filters
+* Modality filters
+* Enrollment
+* Progress tracking
+* Certificates (Coming Soon)
+
+---
+
+## ESS — Document Center
+
+Route: `/ess/documents`
+
+Features:
+
+* Upload personal documents
+* Expiry tracking
+* Expiring Soon widgets
+* Download attachments
+* Document metadata
+
+Document Types:
+
+* Passport
+* Visa
+* Emirates ID
+* Insurance
+* Other
+
+---
+
+## ESS — Appraisals
+
+Route: `/ess/appraisals`
+
+Tabs:
+
+* My Appraisals
+* Team Appraisals
+
+Features:
+
+* Survey UI
+* 360 feedback
+* Progress status
+* Completion tracking
+
+---
+
+## ESS — Help Desk
+
+Route: `/ess/helpdesk`
+
+Features:
+
+* Ticket creation
+* Team routing
+* Priority
+* Attachments
+* Ticket history
+* SLA indicator
+
+Statuses:
+Open → Assigned → In Progress → Resolved → Closed
+
+---
+
+# Additional Cross-System Enhancements (Missing in Current Build Prompt)
+
+### Notification Center
+
+Global notification engine:
+
+* Email
+* In-app
+* WhatsApp (Coming Soon)
+* Reminder scheduler
+* Escalation rules
+
+### Approval Engine
+
+Create reusable approval workflows:
+
+* Conditions
+* Multi-level approvals
+* Delegation
+* SLA timers
+
+### Dashboard Builder
+
+Admin configurable:
+
+* Widget visibility
+* Widget layout
+* Saved dashboard templates
+
+### Project Governance (Admin)
+
+Add:
+
+* Sprint board
+* Backlog
+* Release tracker
+* FAT (Feature Acceptance Testing) tracker
+* Change Request register
+
+### Communication Center
+
+* Internal announcements
+* Employee broadcast
+* Message templates
+* Notification logs
+
+### Audit Expansion
+
+Track:
+
+* Login history
+* Failed attempts
+* Session history
+* Export history
+* Approval actions
+
+### File Storage Layer
+
+Prepare:
+`/storage/company`
+`/storage/hr`
+`/storage/documents`
+`/storage/expenses`
+`/storage/temp`
+
+---
+
+This keeps your original prompt intact and fills the proposal gaps instead of rewriting architecture.

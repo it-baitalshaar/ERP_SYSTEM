@@ -22,7 +22,7 @@ import {
 import { documentTotal } from "@/lib/sales/calculations";
 import { createSupplierInvoice } from "@/lib/data/procurement";
 import { getProcurementCatalog } from "@/lib/procurement/catalog";
-import type { LineItem, Supplier } from "@/lib/types";
+import type { Item, LineItem, Supplier } from "@/lib/types";
 import { toast } from "sonner";
 
 interface SupplierInvoiceFormDialogProps {
@@ -52,7 +52,7 @@ export function SupplierInvoiceFormDialog({
   suppliers,
   onCreated,
 }: SupplierInvoiceFormDialogProps) {
-  const catalog = useMemo(() => getProcurementCatalog(companyId), [companyId]);
+  const [catalog, setCatalog] = useState<Item[]>([]);
   const activeSuppliers = useMemo(
     () => suppliers.filter((s) => !s.is_blocked),
     [suppliers]
@@ -62,6 +62,10 @@ export function SupplierInvoiceFormDialog({
   const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
   const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (open) void getProcurementCatalog(companyId).then(setCatalog);
+  }, [open, companyId]);
 
   useEffect(() => {
     const justOpened = open && !wasOpen.current;

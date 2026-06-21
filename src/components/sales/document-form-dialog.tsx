@@ -26,7 +26,7 @@ import {
   createSalesOrder,
   createTaxInvoice,
 } from "@/lib/data/sales";
-import type { Customer, LineItem } from "@/lib/types";
+import type { Customer, Item, LineItem } from "@/lib/types";
 import { toast } from "sonner";
 
 export type SalesDocumentKind = "quotation" | "order" | "invoice";
@@ -66,7 +66,7 @@ export function DocumentFormDialog({
   customers,
   onCreated,
 }: DocumentFormDialogProps) {
-  const catalog = useMemo(() => getSalesCatalog(companyId), [companyId]);
+  const [catalog, setCatalog] = useState<Item[]>([]);
   const activeCustomers = useMemo(
     () => customers.filter((c) => !c.is_blocked),
     [customers]
@@ -77,6 +77,10 @@ export function DocumentFormDialog({
   const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
   const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (open) void getSalesCatalog(companyId).then(setCatalog);
+  }, [open, companyId]);
 
   useEffect(() => {
     const justOpened = open && !wasOpen.current;

@@ -27,7 +27,7 @@ import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
 export default function PurchaseOrdersPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { currentCompanyId, currentBranchId, currentWarehouseId } = useAppStore();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,9 +46,14 @@ export default function PurchaseOrdersPage() {
     void load();
   }, [load]);
 
-  const runAction = async (id: string, action: string, success: string) => {
+  const runAction = async (
+    id: string,
+    action: string,
+    success: string,
+    extra?: Record<string, unknown>
+  ) => {
     setActing(id);
-    const result = await procurementAction("purchase_orders", currentCompanyId, id, action);
+    const result = await procurementAction("purchase_orders", currentCompanyId, id, action, extra);
     setActing(null);
     if (result.error) {
       toast.error(result.error);
@@ -115,7 +120,11 @@ export default function PurchaseOrdersPage() {
                 <Button
                   size="sm"
                   disabled={busy}
-                  onClick={() => void runAction(po.id, "create_mrn", "MRN created")}
+                  onClick={() =>
+                  void runAction(po.id, "create_mrn", "MRN created", {
+                    warehouse_id: currentWarehouseId || undefined,
+                  })
+                }
                 >
                   <PackageCheck className="mr-1 h-3 w-3" />
                   MRN

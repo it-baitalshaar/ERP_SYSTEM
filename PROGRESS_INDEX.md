@@ -2,20 +2,22 @@
 Last updated: 2026-06-16 by Cursor Agent
 
 ## 1. Status Snapshot
-- Phase: 2 — Supabase + Sales + Procurement wired
+- Phase: 2 — Supabase + Sales + Procurement + Inventory core wired
 - Stack: Next.js 15 + TS + Tailwind + shadcn + Zustand + Supabase
-- Backend: Migrations through `0010_procurement.sql`; Sales + Procurement API live
+- Backend: Migrations through `0011_inventory.sql`
 - Structure: `.cursor/rules/erp-project-structure.mdc` (always apply)
 
 ## 2. Module Build Status
 | Module | Route | Status | Notes |
 |---|---|---|---|
-| Sales (customers, orders, invoices) | /sales/* | in-progress | CRUD + approve/convert flows |
-| Procurement (full purchase cycle) | /procurement/* | in-progress | MR→LPO→PFI→SDN→MRN→SINV→PAY; see `docs/PROCUREMENT_FLOW.md` |
+| Inventory (items, stock, movements) | /inventory/* | in-progress | Items CRUD; stock via MRN in / delivery out |
+| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Delivery notes API; post deducts stock |
+| Procurement (full purchase cycle) | /procurement/* | in-progress | MRN post increases stock + price update UI |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
 | User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
 | Auth + platform init | /login, /itbaitalshaar | done | Username or email login |
-| (other modules) | … | shell / coming-soon | Phase 1 shells unchanged |
+| ESS (Employee Self-Service) | /ess/* | not-started | Spec in `01_BUILD_PROMPT.md` §4.N |
+| (other modules) | … | shell / coming-soon | Finance, transfers, etc. |
 
 ## 3. Feature Flags Implemented
 - [x] Business-line defaults (`src/lib/feature-flags.ts`)
@@ -24,7 +26,7 @@ Last updated: 2026-06-16 by Cursor Agent
 - [x] Super Admin: full nav, all flags treated enabled
 
 ## 4. RBAC Implemented
-- [x] Role defaults (`src/lib/role-permissions.ts`) — cashier/sales → sales only
+- [x] Role defaults (`src/lib/role-permissions.ts`)
 - [x] Per-user module grants (`0009_user_module_permissions.sql`)
 - [x] Super Admin bypasses nav and feature checks
 
@@ -34,20 +36,23 @@ Last updated: 2026-06-16 by Cursor Agent
 | `docs/PROCUREMENT_FLOW.md` | Purchase cycle spec (MR → payment) |
 | `.cursor/rules/erp-project-structure.mdc` | Layering, naming, no-mess rules |
 | `03_AI_INDEX_RULES.md` | How to maintain this index |
+| `01_BUILD_PROMPT.md` §4.N | ESS portal spec (later) |
 
 ## 6. Known Gaps / Coming Soon
 - RFQ / vendor comparison — nav `coming_soon` only
-- MRN → inventory stock post (needs Inventory module)
-- 3-way match UI validation (LPO vs MRN vs SINV)
-- Purchase returns / debit notes, landed cost
+- 3-way match UI (LPO vs MRN vs SINV)
+- Purchase returns, landed cost
+- Stock transfers, adjustments, batch lots
+- Finance / GL integration
+- Sales & procurement must use real item IDs from `/inventory/items`
 
 ## 7. Next Session Should Start With
-- Run `0010_procurement.sql` on Supabase if not applied; smoke-test MR → LPO → MRN → payment flow end-to-end.
+- Run `0011_inventory.sql` on Supabase; create items; test MR→LPO→MRN post→stock; invoice→DN post→stock.
 
 ## 8. Supabase Schema Status
 | Migration | Status |
 |---|---|
-| 0001_init.sql | ready |
-| 0002_seed_users.sql | ready (after Auth users) |
-| 0003–0009 | org, password reset, backups, data ops, user module perms |
-| 0010_procurement.sql | ready — suppliers, MR, LPO, PFI, SDN, MRN, SINV, payments |
+| 0001_init.sql | ready — sales tables |
+| 0002–0009 | org, auth, backups, user module perms |
+| 0010_procurement.sql | ready — full purchase chain |
+| 0011_inventory.sql | ready — items, stock_levels, movements, delivery_notes |

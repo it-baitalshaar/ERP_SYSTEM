@@ -26,6 +26,7 @@ import type {
   PurchasePaymentTerms,
   PurchasePaymentType,
 } from "@/lib/types";
+import { postMrnToInventory } from "@/lib/server/inventory";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
 
@@ -629,9 +630,39 @@ export async function PATCH(request: Request) {
     }
 
     if (resource === "material_receipt_notes" && action === "post") {
-      const priceUpdates = body.price_updates as PriceUpdateLine[] | undefined;
-      const updates: Record<string, unknown> = { status: "posted" satisfies DocumentStatus };
-      if (priceUpdates) updates.price_updates = priceUpdates;
+      const { data: mrnRow, error: fetchError } = await db
+        .from("material_receipt_notes")
+        .select("*")
+        .eq("id", id)
+        .eq("company_id", companyId)
+        .single();
+
+      if (fetchError || !mrnRow) {
+        return NextResponse.json({ error: "MRN not found" }, { status: 404 });
+      }
+      if (mrnRow.status !== "draft") {
+        return NextResponse.json({ error: "Only draft MRN can be posted" }, { status: 400 });
+      }
+
+      const priceUpdates = (body.price_updates as PriceUpdateLine[] | undefined) ?? mrnRow.price_updates;
+
+      try {
+        await postMrnToInventory(db, companyId, {
+          id: mrnRow.id,
+          number: mrnRow.number,
+          warehouse_id: mrnRow.warehouse_id,
+          lines: (mrnRow.lines as LineItem[]) ?? [],
+          price_updates: priceUpdates as PriceUpdateLine[],
+        });
+      } catch (stockErr) {
+        const message = stockErr instanceof Error ? stockErr.message : "Stock update failed";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+
+      const updates: Record<string, unknown> = {
+        status: "posted" satisfies DocumentStatus,
+        price_updates: priceUpdates,
+      };
 
       const { data, error } = await db
         .from("material_receipt_notes")
