@@ -6,6 +6,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { mrnToPrintable } from "@/lib/documents/mappers";
 import { ProcurementListHeader, mrnColumns } from "@/components/modules/procurement-shared";
 import { MrnPostDialog } from "@/components/procurement/mrn-post-dialog";
 import { fetchMaterialReceiptNotes } from "@/lib/data/procurement";
@@ -28,23 +31,43 @@ export default function MaterialReceiptNotesPage() {
 
   const columns: ColumnDef<MaterialReceiptNote>[] = [
     ...mrnColumns,
+    createPrintColumn(mrnToPrintable),
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
         const mrn = row.original;
-        if (mrn.status !== "draft") return null;
+        if (mrn.status !== "draft") {
+          return (
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="material_receipt_notes"
+              documentId={mrn.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
+          );
+        }
         return (
-          <Button
-            size="sm"
-            onClick={() => {
-              setSelectedMrn(mrn);
-              setPostOpen(true);
-            }}
-          >
-            <Check className="mr-1 h-3 w-3" />
-            Post MRN
-          </Button>
+          <div className="flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedMrn(mrn);
+                setPostOpen(true);
+              }}
+            >
+              <Check className="mr-1 h-3 w-3" />
+              Post MRN
+            </Button>
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="material_receipt_notes"
+              documentId={mrn.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
+          </div>
         );
       },
     },

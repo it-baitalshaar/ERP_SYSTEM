@@ -725,4 +725,46 @@ Prepare:
 
 ---
 
+# 4.O Document Print & PDF (Cross-Module Standard)
+
+**Every transactional document** in Sales, Procurement, Inventory movements, Finance, HR, and future modules must expose **Print** and **Download PDF** on list rows and document detail views.
+
+## Shared layer (do not duplicate per module)
+
+| Path | Role |
+|---|---|
+| `src/lib/documents/types.ts` | `PrintableDocument`, `PrintContext`, line helpers |
+| `src/lib/documents/mappers.ts` | One `*ToPrintable(row, ctx)` per document type |
+| `src/lib/documents/print.ts` | `buildPrintHtml`, `openPrintWindow`, `downloadPdf` (jspdf + jspdf-autotable) |
+| `src/components/documents/document-print-actions.tsx` | Print + PDF buttons |
+| `src/components/documents/document-print-column.tsx` | `createPrintColumn(mapper)` for data tables |
+| `src/components/documents/use-print-context.ts` | Company / branch / currency from `useAppStore` |
+
+## When building a new document type
+
+1. Add a mapper in `mappers.ts` (title, number, party, lines, totals, meta).
+2. On the list page: `createPrintColumn(yourMapper)` before the actions column.
+3. On detail / form dialogs (optional): `<DocumentPrintActions document={…} />`.
+4. Letterhead: use `PrintContext` company name and branch; logo field reserved for later admin UI customization.
+
+## Dependencies
+
+- `jspdf`, `jspdf-autotable` in `package.json`
+- If PDF libs fail to load, fall back to print window → user can Save as PDF
+
+## Currently wired
+
+- **Sales:** quotations, sales orders, tax invoices, delivery notes
+- **Procurement:** material requests, LPO, proforma, supplier delivery notes, MRN, supplier invoices, purchase payments
+
+## Admin document delete (§4.P)
+
+- **Who:** Super Admin and Company Admin only (`isAdminRole`).
+- **Where:** Delete button on each transactional list row (Sales + Procurement).
+- **Linked docs:** `check_delete` returns blockers with document number, hint, and link to the list page. User must delete children first (e.g. for LPO: Payments → Supplier Invoices → MRNs → SDN → Proforma → LPO).
+- **Posted docs:** Warn on approve/posted status; reversing stock on posted MRN / sales delivery note delete; reduce customer balance on posted tax invoice delete.
+- **Server:** `src/lib/server/document-delete.ts` — `checkDocumentDelete`, `deleteDocument`; API `PATCH` actions `check_delete` and `delete`.
+
+---
+
 This keeps your original prompt intact and fills the proposal gaps instead of rewriting architecture.

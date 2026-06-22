@@ -17,6 +17,7 @@ import {
   salesOrderInsertPayload,
 } from "@/lib/server/sales";
 import { postDeliveryNoteToInventory } from "@/lib/server/inventory";
+import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
 import type { DocumentStatus, LineItem } from "@/lib/types";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
@@ -564,6 +565,23 @@ export async function PATCH(request: Request) {
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
         return NextResponse.json({ data: mapDeliveryNote(data) });
       }
+    }
+
+    const deletableResources = new Set([
+      "quotations",
+      "orders",
+      "invoices",
+      "delivery_notes",
+    ]);
+
+    if (deletableResources.has(resource) && action === "check_delete") {
+      const data = await checkDocumentDelete(token.role_id, "sales", resource, companyId, id);
+      return NextResponse.json({ data });
+    }
+
+    if (deletableResources.has(resource) && action === "delete") {
+      await deleteDocument(token.role_id, "sales", resource, companyId, id);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Unknown action or resource" }, { status: 400 });

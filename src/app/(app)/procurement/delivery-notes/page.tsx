@@ -1,12 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
   ProcurementListHeader,
   deliveryNoteColumns,
 } from "@/components/modules/procurement-shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { supplierDeliveryNoteToPrintable } from "@/lib/documents/mappers";
 import { fetchSupplierDeliveryNotes } from "@/lib/data/procurement";
 import type { SupplierDeliveryNote } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
@@ -23,6 +27,24 @@ export default function SupplierDeliveryNotesPage() {
     void load();
   }, [load]);
 
+  const columns: ColumnDef<SupplierDeliveryNote>[] = [
+    ...deliveryNoteColumns,
+    createPrintColumn(supplierDeliveryNoteToPrintable),
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <AdminDocumentDeleteButton
+          module="procurement"
+          resource="supplier_delivery_notes"
+          documentId={row.original.id}
+          companyId={currentCompanyId}
+          onDeleted={() => void load()}
+        />
+      ),
+    },
+  ];
+
   return (
     <div>
       <ProcurementListHeader
@@ -31,7 +53,7 @@ export default function SupplierDeliveryNotesPage() {
       />
       <Card>
         <CardContent className="pt-6">
-          <DataTable columns={deliveryNoteColumns} data={rows} searchKey="number" />
+          <DataTable columns={columns} data={rows} searchKey="number" />
         </CardContent>
       </Card>
     </div>

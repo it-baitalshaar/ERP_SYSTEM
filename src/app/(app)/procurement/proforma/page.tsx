@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { ProcurementListHeader, proformaColumns } from "@/components/modules/procurement-shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { proformaToPrintable } from "@/lib/documents/mappers";
 import { fetchProformaInvoices } from "@/lib/data/procurement";
 import type { ProformaInvoice } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
@@ -20,6 +24,24 @@ export default function ProformaInvoicesPage() {
     void load();
   }, [load]);
 
+  const columns: ColumnDef<ProformaInvoice>[] = [
+    ...proformaColumns,
+    createPrintColumn(proformaToPrintable),
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <AdminDocumentDeleteButton
+          module="procurement"
+          resource="proforma_invoices"
+          documentId={row.original.id}
+          companyId={currentCompanyId}
+          onDeleted={() => void load()}
+        />
+      ),
+    },
+  ];
+
   return (
     <div>
       <ProcurementListHeader
@@ -28,7 +50,7 @@ export default function ProformaInvoicesPage() {
       />
       <Card>
         <CardContent className="pt-6">
-          <DataTable columns={proformaColumns} data={rows} searchKey="number" />
+          <DataTable columns={columns} data={rows} searchKey="number" />
         </CardContent>
       </Card>
     </div>

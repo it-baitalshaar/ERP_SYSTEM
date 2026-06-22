@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { DocumentFormDialog } from "@/components/sales/document-form-dialog";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { taxInvoiceToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, invoiceColumns } from "@/components/modules/sales-shared";
 import { fetchCustomers, fetchTaxInvoices, salesAction } from "@/lib/data/sales";
 import type { Customer, TaxInvoice } from "@/lib/types";
@@ -53,6 +56,7 @@ export default function TaxInvoicesPage() {
 
   const columns: ColumnDef<TaxInvoice>[] = [
     ...invoiceColumns,
+    createPrintColumn(taxInvoiceToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -100,6 +104,13 @@ export default function TaxInvoicesPage() {
                 Mark paid
               </Button>
             )}
+            <AdminDocumentDeleteButton
+              module="sales"
+              resource="invoices"
+              documentId={inv.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { materialRequestToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
   materialRequestColumns,
@@ -101,6 +104,7 @@ export default function MaterialRequestsPage() {
 
   const columns: ColumnDef<MaterialRequest>[] = [
     ...materialRequestColumns,
+    createPrintColumn(materialRequestToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -143,6 +147,13 @@ export default function MaterialRequestsPage() {
                 To LPO
               </Button>
             )}
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="material_requests"
+              documentId={mr.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

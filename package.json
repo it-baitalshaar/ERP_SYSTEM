@@ -40,6 +40,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "jose": "^6.2.3",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^1.18.0",
     "next": "^15.5.19",
     "react": "^19.2.7",

@@ -6,6 +6,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { supplierInvoiceToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
   supplierInvoiceColumns,
@@ -59,6 +62,7 @@ export default function SupplierInvoicesPage() {
 
   const columns: ColumnDef<SupplierInvoice>[] = [
     ...supplierInvoiceColumns,
+    createPrintColumn(supplierInvoiceToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -87,6 +91,13 @@ export default function SupplierInvoicesPage() {
                 Mark paid
               </Button>
             )}
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="supplier_invoices"
+              documentId={inv.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

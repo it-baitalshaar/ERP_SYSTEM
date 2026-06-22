@@ -6,6 +6,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { deliveryNoteToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, deliveryNoteColumns } from "@/components/modules/sales-shared";
 import { fetchDeliveryNotes, salesAction } from "@/lib/data/sales";
 import type { DeliveryNote } from "@/lib/types";
@@ -44,21 +47,32 @@ export default function DeliveryNotesPage() {
 
   const columns: ColumnDef<DeliveryNote>[] = [
     ...deliveryNoteColumns,
+    createPrintColumn(deliveryNoteToPrintable),
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
         const note = row.original;
-        if (note.status !== "draft") return null;
         return (
-          <Button
-            size="sm"
-            disabled={acting === note.id}
-            onClick={() => void postNote(note.id)}
-          >
-            <Send className="mr-1 h-3 w-3" />
-            Post & deduct stock
-          </Button>
+          <div className="flex flex-wrap gap-1">
+            {note.status === "draft" && (
+              <Button
+                size="sm"
+                disabled={acting === note.id}
+                onClick={() => void postNote(note.id)}
+              >
+                <Send className="mr-1 h-3 w-3" />
+                Post & deduct stock
+              </Button>
+            )}
+            <AdminDocumentDeleteButton
+              module="sales"
+              resource="delivery_notes"
+              documentId={note.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
+          </div>
         );
       },
     },

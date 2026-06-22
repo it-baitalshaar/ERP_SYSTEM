@@ -12,6 +12,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { purchaseOrderToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
   purchaseOrderColumns,
@@ -65,6 +68,7 @@ export default function PurchaseOrdersPage() {
 
   const columns: ColumnDef<PurchaseOrder>[] = [
     ...purchaseOrderColumns,
+    createPrintColumn(purchaseOrderToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -131,6 +135,13 @@ export default function PurchaseOrdersPage() {
                 </Button>
               </>
             )}
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="purchase_orders"
+              documentId={po.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

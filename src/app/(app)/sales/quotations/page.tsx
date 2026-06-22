@@ -11,6 +11,9 @@ import {
   SalesListHeader,
   quotationColumns,
 } from "@/components/modules/sales-shared";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { quotationToPrintable } from "@/lib/documents/mappers";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fetchCustomers, fetchQuotations, salesAction } from "@/lib/data/sales";
 import type { Customer, Quotation } from "@/lib/types";
@@ -56,6 +59,7 @@ export default function QuotationsPage() {
 
   const columns: ColumnDef<Quotation>[] = [
     ...quotationColumns,
+    createPrintColumn(quotationToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -101,6 +105,13 @@ export default function QuotationsPage() {
             {q.status !== "draft" && q.status !== "approved" && (
               <StatusBadge status={q.status} />
             )}
+            <AdminDocumentDeleteButton
+              module="sales"
+              resource="quotations"
+              documentId={q.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

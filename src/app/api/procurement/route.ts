@@ -27,6 +27,7 @@ import type {
   PurchasePaymentType,
 } from "@/lib/types";
 import { postMrnToInventory } from "@/lib/server/inventory";
+import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
 
@@ -716,6 +717,26 @@ export async function PATCH(request: Request) {
         .single();
       if (error) return NextResponse.json({ error: "Only draft payments can be posted" }, { status: 400 });
       return NextResponse.json({ data: mapPurchasePayment(data) });
+    }
+
+    const deletableResources = new Set([
+      "material_requests",
+      "purchase_orders",
+      "proforma_invoices",
+      "supplier_delivery_notes",
+      "material_receipt_notes",
+      "supplier_invoices",
+      "purchase_payments",
+    ]);
+
+    if (deletableResources.has(resource) && action === "check_delete") {
+      const data = await checkDocumentDelete(token.role_id, "procurement", resource, companyId, id);
+      return NextResponse.json({ data });
+    }
+
+    if (deletableResources.has(resource) && action === "delete") {
+      await deleteDocument(token.role_id, "procurement", resource, companyId, id);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Unknown action or resource" }, { status: 400 });

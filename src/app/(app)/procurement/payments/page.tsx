@@ -22,6 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/shared/data-table";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { purchasePaymentToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
   purchasePaymentColumns,
@@ -119,21 +122,32 @@ export default function PurchasePaymentsPage() {
 
   const columns: ColumnDef<PurchasePayment>[] = [
     ...purchasePaymentColumns,
+    createPrintColumn(purchasePaymentToPrintable),
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
         const pay = row.original;
-        if (pay.status !== "draft") return null;
         return (
-          <Button
-            size="sm"
-            disabled={acting === pay.id}
-            onClick={() => void postPayment(pay.id)}
-          >
-            <Check className="mr-1 h-3 w-3" />
-            Post
-          </Button>
+          <div className="flex flex-wrap gap-1">
+            {pay.status === "draft" && (
+              <Button
+                size="sm"
+                disabled={acting === pay.id}
+                onClick={() => void postPayment(pay.id)}
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Post
+              </Button>
+            )}
+            <AdminDocumentDeleteButton
+              module="procurement"
+              resource="purchase_payments"
+              documentId={pay.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
+          </div>
         );
       },
     },

@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { DocumentFormDialog } from "@/components/sales/document-form-dialog";
+import { createPrintColumn } from "@/components/documents/document-print-column";
+import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
+import { salesOrderToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, salesOrderColumns } from "@/components/modules/sales-shared";
 import { fetchCustomers, fetchSalesOrders, salesAction } from "@/lib/data/sales";
 import type { Customer, SalesOrder } from "@/lib/types";
@@ -47,6 +50,7 @@ export default function SalesOrdersPage() {
 
   const columns: ColumnDef<SalesOrder>[] = [
     ...salesOrderColumns,
+    createPrintColumn(salesOrderToPrintable),
     {
       id: "actions",
       header: "Actions",
@@ -87,6 +91,13 @@ export default function SalesOrdersPage() {
                 To invoice
               </Button>
             )}
+            <AdminDocumentDeleteButton
+              module="sales"
+              resource="orders"
+              documentId={order.id}
+              companyId={currentCompanyId}
+              onDeleted={() => void load()}
+            />
           </div>
         );
       },

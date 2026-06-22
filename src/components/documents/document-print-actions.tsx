@@ -1,0 +1,67 @@
+"use client";
+
+import { FileDown, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { PrintableDocument } from "@/lib/documents/types";
+import { downloadPdf, openPrintWindow } from "@/lib/documents/print";
+import { toast } from "sonner";
+
+interface DocumentPrintActionsProps {
+  document: PrintableDocument;
+  size?: "sm" | "default" | "icon";
+  className?: string;
+}
+
+export function DocumentPrintActions({
+  document,
+  size = "sm",
+  className,
+}: DocumentPrintActionsProps) {
+  const handlePrint = () => {
+    try {
+      openPrintWindow(document, true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open print window");
+    }
+  };
+
+  const handlePdf = async () => {
+    try {
+      await downloadPdf(document);
+      toast.success("PDF downloaded");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "PDF failed";
+      if (message.includes("Save as PDF")) {
+        toast.message("Print dialog opened — choose Save as PDF");
+      } else {
+        toast.error(message);
+      }
+    }
+  };
+
+  if (size === "icon") {
+    return (
+      <div className={`flex gap-0.5 ${className ?? ""}`}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrint} title="Print">
+          <Printer className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void handlePdf()} title="Download PDF">
+          <FileDown className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-wrap gap-1 ${className ?? ""}`}>
+      <Button size={size} variant="outline" onClick={handlePrint}>
+        <Printer className="mr-1 h-3 w-3" />
+        Print
+      </Button>
+      <Button size={size} variant="outline" onClick={() => void handlePdf()}>
+        <FileDown className="mr-1 h-3 w-3" />
+        PDF
+      </Button>
+    </div>
+  );
+}

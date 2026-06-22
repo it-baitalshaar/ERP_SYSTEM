@@ -11,8 +11,9 @@ Last updated: 2026-06-16 by Cursor Agent
 | Module | Route | Status | Notes |
 |---|---|---|---|
 | Inventory (items, stock, movements) | /inventory/* | in-progress | Items CRUD; stock via MRN in / delivery out |
-| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Delivery notes API; post deducts stock |
-| Procurement (full purchase cycle) | /procurement/* | in-progress | MRN post increases stock + price update UI |
+| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Print/PDF on all transactional lists |
+| Procurement (full purchase cycle) | /procurement/* | in-progress | Print/PDF on MR→payment documents |
+| Document print / PDF | cross-module | done | `src/lib/documents/*`, `createPrintColumn` on lists |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
 | User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
 | Auth + platform init | /login, /itbaitalshaar | done | Username or email login |
@@ -37,6 +38,7 @@ Last updated: 2026-06-16 by Cursor Agent
 | `.cursor/rules/erp-project-structure.mdc` | Layering, naming, no-mess rules |
 | `03_AI_INDEX_RULES.md` | How to maintain this index |
 | `01_BUILD_PROMPT.md` §4.N | ESS portal spec (later) |
+| `01_BUILD_PROMPT.md` §4.O | Print/PDF standard for all documents |
 
 ## 6. Known Gaps / Coming Soon
 - RFQ / vendor comparison — nav `coming_soon` only
