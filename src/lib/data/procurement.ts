@@ -11,6 +11,7 @@ import type {
   SupplierDeliveryNote,
   SupplierInvoice,
 } from "@/lib/types";
+import type { ThreeWayMatchResult } from "@/lib/procurement/three-way-match";
 
 async function procurementRequest<T>(
   url: string,
@@ -163,5 +164,43 @@ export async function procurementAction<T>(
   return procurementRequest<T>("/api/procurement", {
     method: "PATCH",
     body: JSON.stringify({ resource, company_id: companyId, id, action, ...extra }),
+  });
+}
+
+export async function fetchThreeWayMatch(
+  companyId: string,
+  params: { mrnId?: string; supplierInvoiceId?: string }
+) {
+  const q = new URLSearchParams({ companyId, resource: "three_way_match" });
+  if (params.mrnId) q.set("mrnId", params.mrnId);
+  if (params.supplierInvoiceId) q.set("supplierInvoiceId", params.supplierInvoiceId);
+  const res = await fetch(`/api/procurement?${q}`);
+  const json = (await res.json()) as { data?: ThreeWayMatchResult; error?: string };
+  if (!res.ok) return { error: json.error ?? "Request failed" };
+  return { data: json.data };
+}
+
+export async function fetchMrnInvoicePreview(companyId: string, mrnId: string) {
+  const q = new URLSearchParams({ companyId, resource: "mrn_invoice_preview", mrnId });
+  const res = await fetch(`/api/procurement?${q}`);
+  const json = (await res.json()) as { data?: unknown; error?: string };
+  if (!res.ok) return { error: json.error ?? "Request failed" };
+  return { data: json.data };
+}
+
+export async function createSupplierInvoiceFromMrn(
+  companyId: string,
+  branchId: string,
+  mrnId: string
+): Promise<{ data?: SupplierInvoice; error?: string }> {
+  return procurementRequest<SupplierInvoice>("/api/procurement", {
+    method: "PATCH",
+    body: JSON.stringify({
+      resource: "material_receipt_notes",
+      company_id: companyId,
+      branch_id: branchId,
+      id: mrnId,
+      action: "create_supplier_invoice",
+    }),
   });
 }

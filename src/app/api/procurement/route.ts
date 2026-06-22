@@ -28,6 +28,14 @@ import type {
 } from "@/lib/types";
 import { postMrnToInventory } from "@/lib/server/inventory";
 import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
+import {
+  assertThreeWayMatchForPost,
+  createSupplierInvoiceFromMrn,
+  getThreeWayMatchByInvoice,
+  getThreeWayMatchByMrn,
+  previewSupplierInvoiceFromMrn,
+} from "@/lib/server/three-way-match";
+import { isAdminRole } from "@/lib/permissions";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
 
@@ -132,11 +140,38 @@ export async function GET(request: Request) {
     if (resource === "supplier_invoices") {
       const { data, error } = await db
         .from("supplier_invoices")
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapSupplierInvoice) });
+    }
+
+    if (resource === "three_way_match") {
+      const mrnId = searchParams.get("mrnId");
+      const supplierInvoiceId = searchParams.get("supplierInvoiceId");
+
+      if (!mrnId && !supplierInvoiceId) {
+        return NextResponse.json(
+          { error: "mrnId or supplierInvoiceId required" },
+          { status: 400 }
+        );
+      }
+
+      const data = supplierInvoiceId
+        ? await getThreeWayMatchByInvoice(db, companyId, supplierInvoiceId)
+        : await getThreeWayMatchByMrn(db, companyId, mrnId!);
+
+      return NextResponse.json({ data });
+    }
+
+    if (resource === "mrn_invoice_preview") {
+      const mrnId = searchParams.get("mrnId");
+      if (!mrnId) {
+        return NextResponse.json({ error: "mrnId required" }, { status: 400 });
+      }
+      const data = await previewSupplierInvoiceFromMrn(db, companyId, mrnId);
+      return NextResponse.json({ data });
     }
 
     if (resource === "purchase_payments") {
@@ -279,7 +314,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("supplier_invoices")
         .insert(payload)
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -679,14 +714,31 @@ export async function PATCH(request: Request) {
     }
 
     if (resource === "supplier_invoices") {
+      if (action === "three_way_match") {
+        const data = await getThreeWayMatchByInvoice(db, companyId, id);
+        return NextResponse.json({ data });
+      }
+
       if (action === "post") {
+        const { data: draftInv } = await db
+          .from("supplier_invoices")
+          .select("mrn_id")
+          .eq("id", id)
+          .eq("company_id", companyId)
+          .single();
+
+        if (draftInv?.mrn_id) {
+          const allowVariance = Boolean(body.allow_variance) && isAdminRole(token.role_id);
+          await assertThreeWayMatchForPost(db, companyId, id, allowVariance);
+        }
+
         const { data, error } = await db
           .from("supplier_invoices")
           .update({ status: "posted" satisfies DocumentStatus })
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, suppliers(name)")
+          .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft invoices can be posted" }, { status: 400 });
         return NextResponse.json({ data: mapSupplierInvoice(data) });
@@ -699,11 +751,17 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "posted")
-          .select("*, suppliers(name)")
+          .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
           .single();
         if (error) return NextResponse.json({ error: "Only posted invoices can be marked paid" }, { status: 400 });
         return NextResponse.json({ data: mapSupplierInvoice(data) });
       }
+    }
+
+    if (resource === "material_receipt_notes" && action === "create_supplier_invoice") {
+      const branchId = String(body.branch_id ?? "");
+      const data = await createSupplierInvoiceFromMrn(db, companyId, branchId, id);
+      return NextResponse.json({ data });
     }
 
     if (resource === "purchase_payments" && action === "post") {

@@ -126,6 +126,8 @@ export const mrnColumns: ColumnDef<MaterialReceiptNote>[] = [
 export const supplierInvoiceColumns: ColumnDef<SupplierInvoice>[] = [
   { accessorKey: "number", header: "Invoice" },
   { accessorKey: "supplier_name", header: "Supplier" },
+  { accessorKey: "purchase_order_number", header: "LPO" },
+  { accessorKey: "mrn_number", header: "MRN" },
   { accessorKey: "date", header: "Date" },
   {
     accessorKey: "status",

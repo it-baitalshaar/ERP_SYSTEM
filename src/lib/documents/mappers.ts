@@ -205,7 +205,11 @@ export function supplierInvoiceToPrintable(
     subtotal: inv.subtotal,
     vat_amount: inv.vat_amount,
     total: inv.total,
-    meta: [{ label: "Paid", value: inv.is_paid ? "Yes" : "No" }],
+    meta: [
+      ...(inv.purchase_order_number ? [{ label: "LPO", value: inv.purchase_order_number }] : []),
+      ...(inv.mrn_number ? [{ label: "MRN", value: inv.mrn_number }] : []),
+      { label: "Paid", value: inv.is_paid ? "Yes" : "No" },
+    ],
   });
 }
 

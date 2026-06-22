@@ -183,6 +183,8 @@ export function mapMaterialReceiptNote(row: Record<string, unknown>): MaterialRe
 }
 
 export function mapSupplierInvoice(row: Record<string, unknown>): SupplierInvoice {
+  const po = row.purchase_orders as { number?: string } | null;
+  const mrn = row.material_receipt_notes as { number?: string } | null;
   return {
     id: String(row.id),
     company_id: String(row.company_id),
@@ -190,7 +192,9 @@ export function mapSupplierInvoice(row: Record<string, unknown>): SupplierInvoic
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
     purchase_order_id: row.purchase_order_id ? String(row.purchase_order_id) : undefined,
+    purchase_order_number: po?.number,
     mrn_id: row.mrn_id ? String(row.mrn_id) : undefined,
+    mrn_number: mrn?.number,
     gr_id: row.mrn_id ? String(row.mrn_id) : undefined,
     number: String(row.number),
     date: String(row.date),

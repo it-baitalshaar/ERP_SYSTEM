@@ -42,14 +42,14 @@ Last updated: 2026-06-16 by Cursor Agent
 
 ## 6. Known Gaps / Coming Soon
 - RFQ / vendor comparison — nav `coming_soon` only
-- 3-way match UI (LPO vs MRN vs SINV)
+- ~~3-way match UI (LPO vs MRN vs SINV)~~ — done (MRN → invoice + post validation)
 - Purchase returns, landed cost
 - Stock transfers, adjustments, batch lots
 - Finance / GL integration
 - Sales & procurement must use real item IDs from `/inventory/items`
 
 ## 7. Next Session Should Start With
-- Run `0011_inventory.sql` on Supabase; create items; test MR→LPO→MRN post→stock; invoice→DN post→stock.
+- Payment allocation to supplier invoice / LPO; supplier outstanding balance; stock movements UI.
 
 ## 8. Supabase Schema Status
 | Migration | Status |

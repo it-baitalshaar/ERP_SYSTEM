@@ -334,7 +334,9 @@ export interface SupplierInvoice {
   supplier_id: string;
   supplier_name: string;
   purchase_order_id?: string;
+  purchase_order_number?: string;
   mrn_id?: string;
+  mrn_number?: string;
   gr_id?: string;
   number: string;
   date: string;
