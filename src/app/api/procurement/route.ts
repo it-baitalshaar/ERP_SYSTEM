@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     if (resource === "purchase_orders") {
       const { data, error } = await db
         .from("purchase_orders")
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name, phone)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     if (resource === "proforma_invoices") {
       const { data, error } = await db
         .from("proforma_invoices")
-        .select("*, suppliers(name), purchase_orders(number)")
+        .select("*, suppliers(name, phone), purchase_orders(number)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     if (resource === "supplier_delivery_notes") {
       const { data, error } = await db
         .from("supplier_delivery_notes")
-        .select("*, suppliers(name), purchase_orders(number)")
+        .select("*, suppliers(name, phone), purchase_orders(number)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
     if (resource === "supplier_invoices") {
       const { data, error } = await db
         .from("supplier_invoices")
-        .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
+        .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -177,7 +177,7 @@ export async function GET(request: Request) {
     if (resource === "purchase_payments") {
       const { data, error } = await db
         .from("purchase_payments")
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name, phone)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("purchase_orders")
         .insert(payload)
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name, phone)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -314,7 +314,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("supplier_invoices")
         .insert(payload)
-        .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
+        .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -360,7 +360,7 @@ export async function POST(request: Request) {
           currency: String(body.currency ?? "AED"),
           reference: body.reference ? String(body.reference) : null,
         })
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name, phone)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -501,7 +501,7 @@ export async function PATCH(request: Request) {
         const { data, error } = await db
           .from("purchase_orders")
           .insert(payload)
-          .select("*, suppliers(name)")
+          .select("*, suppliers(name, phone)")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -517,7 +517,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, suppliers(name)")
+          .select("*, suppliers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft LPOs can be submitted" }, { status: 400 });
         return NextResponse.json({ data: mapPurchaseOrder(data) });
@@ -530,7 +530,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .in("status", ["draft", "pending_approval"])
-          .select("*, suppliers(name)")
+          .select("*, suppliers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "LPO cannot be approved" }, { status: 400 });
         return NextResponse.json({ data: mapPurchaseOrder(data) });
@@ -570,7 +570,7 @@ export async function PATCH(request: Request) {
             lines,
             total: documentTotal(lines),
           })
-          .select("*, suppliers(name), purchase_orders(number)")
+          .select("*, suppliers(name, phone), purchase_orders(number)")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -610,7 +610,7 @@ export async function PATCH(request: Request) {
             lines,
             notes: body.notes ? String(body.notes) : null,
           })
-          .select("*, suppliers(name), purchase_orders(number)")
+          .select("*, suppliers(name, phone), purchase_orders(number)")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -738,7 +738,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
+          .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft invoices can be posted" }, { status: 400 });
         return NextResponse.json({ data: mapSupplierInvoice(data) });
@@ -751,7 +751,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "posted")
-          .select("*, suppliers(name), purchase_orders(number), material_receipt_notes(number)")
+          .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
           .single();
         if (error) return NextResponse.json({ error: "Only posted invoices can be marked paid" }, { status: 400 });
         return NextResponse.json({ data: mapSupplierInvoice(data) });
@@ -771,7 +771,7 @@ export async function PATCH(request: Request) {
         .eq("id", id)
         .eq("company_id", companyId)
         .eq("status", "draft")
-        .select("*, suppliers(name)")
+        .select("*, suppliers(name, phone)")
         .single();
       if (error) return NextResponse.json({ error: "Only draft payments can be posted" }, { status: 400 });
       return NextResponse.json({ data: mapPurchasePayment(data) });

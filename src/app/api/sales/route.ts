@@ -18,6 +18,7 @@ import {
 } from "@/lib/server/sales";
 import { postDeliveryNoteToInventory } from "@/lib/server/inventory";
 import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
+import { checkCustomerDelete, deleteCustomer } from "@/lib/server/customer-delete";
 import type { DocumentStatus, LineItem } from "@/lib/types";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
     if (resource === "quotations") {
       const { data, error } = await db
         .from("quotations")
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
     if (resource === "orders") {
       const { data, error } = await db
         .from("sales_orders")
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
     if (resource === "invoices") {
       const { data, error } = await db
         .from("tax_invoices")
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -86,7 +87,7 @@ export async function GET(request: Request) {
     if (resource === "delivery_notes") {
       const { data, error } = await db
         .from("delivery_notes")
-        .select("*, tax_invoices(number, customers(name))")
+        .select("*, tax_invoices(number, customers(name, phone))")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -163,7 +164,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("quotations")
         .insert(payload)
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("sales_orders")
         .insert(payload)
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -219,7 +220,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("tax_invoices")
         .insert(payload)
-        .select("*, customers(name)")
+        .select("*, customers(name, phone)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -256,6 +257,18 @@ export async function PATCH(request: Request) {
     }
 
     if (resource === "customers") {
+      const action = String(body.action ?? "update");
+
+      if (action === "check_delete") {
+        const data = await checkCustomerDelete(db, companyId, id);
+        return NextResponse.json({ data });
+      }
+
+      if (action === "delete") {
+        await deleteCustomer(token.role_id, companyId, id);
+        return NextResponse.json({ success: true });
+      }
+
       const updates: Record<string, unknown> = {};
       if (body.name !== undefined) updates.name = String(body.name).trim();
       if (body.email !== undefined) updates.email = String(body.email).trim() || null;
@@ -284,7 +297,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft quotations can be approved" }, { status: 400 });
         return NextResponse.json({ data: mapQuotation(data) });
@@ -296,7 +309,7 @@ export async function PATCH(request: Request) {
           .update({ status: "rejected" satisfies DocumentStatus })
           .eq("id", id)
           .eq("company_id", companyId)
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
         return NextResponse.json({ data: mapQuotation(data) });
@@ -335,7 +348,7 @@ export async function PATCH(request: Request) {
         const { data, error } = await db
           .from("sales_orders")
           .insert(payload)
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -350,7 +363,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft quotations can be edited" }, { status: 400 });
         return NextResponse.json({ data: mapQuotation(data) });
@@ -365,7 +378,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .in("status", ["draft", "pending_approval"])
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Order cannot be approved" }, { status: 400 });
         return NextResponse.json({ data: mapSalesOrder(data) });
@@ -378,7 +391,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft orders can be submitted" }, { status: 400 });
         return NextResponse.json({ data: mapSalesOrder(data) });
@@ -416,7 +429,7 @@ export async function PATCH(request: Request) {
         const { data, error } = await db
           .from("tax_invoices")
           .insert(payload)
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -443,7 +456,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
 
         if (error) return NextResponse.json({ error: "Only draft invoices can be posted" }, { status: 400 });
@@ -477,7 +490,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "posted")
-          .select("*, customers(name)")
+          .select("*, customers(name, phone)")
           .single();
         if (error) return NextResponse.json({ error: "Only posted invoices can be marked paid" }, { status: 400 });
         return NextResponse.json({ data: mapTaxInvoice(data) });
@@ -518,7 +531,7 @@ export async function PATCH(request: Request) {
               ? lines.map((l) => ({ ...l, warehouse_id: l.warehouse_id ?? warehouseId }))
               : lines,
           })
-          .select("*, tax_invoices(number, customers(name))")
+          .select("*, tax_invoices(number, customers(name, phone))")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -559,7 +572,7 @@ export async function PATCH(request: Request) {
           .update({ status: "posted" satisfies DocumentStatus })
           .eq("id", id)
           .eq("company_id", companyId)
-          .select("*, tax_invoices(number, customers(name))")
+          .select("*, tax_invoices(number, customers(name, phone))")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });

@@ -757,6 +757,12 @@ Prepare:
 - **Sales:** quotations, sales orders, tax invoices, delivery notes
 - **Procurement:** material requests, LPO, proforma, supplier delivery notes, MRN, supplier invoices, purchase payments
 
+## WhatsApp share (§4.Q)
+
+- Green **WhatsApp** button on every document row (with Print/PDF).
+- Pre-fills customer/supplier phone from master data; user can tick **text** and/or **PDF**.
+- Opens `wa.me` with message; PDF downloads for attach (native share on mobile when supported).
+
 ## Admin document delete (§4.P)
 
 - **Who:** Super Admin and Company Admin only (`isAdminRole`).
@@ -764,6 +770,7 @@ Prepare:
 - **Linked docs:** `check_delete` returns blockers with document number, hint, and link to the list page. User must delete children first (e.g. for LPO: Payments → Supplier Invoices → MRNs → SDN → Proforma → LPO).
 - **Posted docs:** Warn on approve/posted status; reversing stock on posted MRN / sales delivery note delete; reduce customer balance on posted tax invoice delete.
 - **Server:** `src/lib/server/document-delete.ts` — `checkDocumentDelete`, `deleteDocument`; API `PATCH` actions `check_delete` and `delete`.
+- **Customers:** Super Admin / Company Admin — delete on `/sales/customers`; block if quotations, orders, or invoices exist (`src/lib/server/customer-delete.ts`).
 
 ---
 

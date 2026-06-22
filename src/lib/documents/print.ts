@@ -122,87 +122,110 @@ export function openPrintWindow(doc: PrintableDocument, autoPrint = true): void 
   }
 }
 
+export async function buildPdfDocument(doc: PrintableDocument) {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const currency = doc.currency ?? "AED";
+  let y = 14;
+
+  pdf.setFontSize(16);
+  pdf.text(doc.companyName, 14, y);
+  y += 7;
+  pdf.setFontSize(10);
+  pdf.setTextColor(100);
+  if (doc.branchName) {
+    pdf.text(doc.branchName, 14, y);
+    y += 5;
+  }
+  pdf.setTextColor(0);
+  pdf.setFontSize(14);
+  pdf.text(doc.title, 140, 14, { align: "right" });
+  pdf.setFontSize(11);
+  pdf.text(doc.number, 140, 21, { align: "right" });
+  pdf.text(doc.date, 140, 27, { align: "right" });
+  y = Math.max(y, 32);
+
+  if (doc.partyName) {
+    pdf.setFontSize(10);
+    pdf.text(`${doc.partyLabel ?? "Party"}: ${doc.partyName}`, 14, y);
+    y += 6;
+  }
+  if (doc.status) {
+    pdf.text(`Status: ${doc.status.replace(/_/g, " ")}`, 14, y);
+    y += 6;
+  }
+  for (const m of doc.meta ?? []) {
+    pdf.text(`${m.label}: ${m.value}`, 14, y);
+    y += 5;
+  }
+
+  if (doc.lines.length) {
+    autoTable(pdf, {
+      startY: y + 2,
+      head: [["#", "Description", "Qty", "Unit price", "Total"]],
+      body: doc.lines.map((line, i) => [
+        String(i + 1),
+        line.item_name,
+        `${line.qty} ${line.uom}`,
+        formatMoney(line.unit_price, currency),
+        formatMoney(line.line_total, currency),
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [30, 58, 95] },
+    });
+    y = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  }
+
+  pdf.setFontSize(10);
+  if (doc.subtotal !== undefined) {
+    pdf.text(`Subtotal: ${formatMoney(doc.subtotal, currency)}`, 140, y, { align: "right" });
+    y += 5;
+  }
+  if (doc.vat_amount !== undefined) {
+    pdf.text(`VAT: ${formatMoney(doc.vat_amount, currency)}`, 140, y, { align: "right" });
+    y += 5;
+  }
+  if (doc.total !== undefined) {
+    pdf.setFontSize(12);
+    pdf.text(`Total: ${formatMoney(doc.total, currency)}`, 140, y, { align: "right" });
+  } else if (doc.amount !== undefined) {
+    pdf.setFontSize(12);
+    pdf.text(`Amount: ${formatMoney(doc.amount, currency)}`, 140, y, { align: "right" });
+  }
+
+  if (doc.notes) {
+    y += 10;
+    pdf.setFontSize(9);
+    pdf.text(`Notes: ${doc.notes}`, 14, y, { maxWidth: 180 });
+  }
+
+  return pdf;
+}
+
+function pdfFilename(doc: PrintableDocument): string {
+  return `${doc.number.replace(/[/\\?%*:|"<>]/g, "-")}.pdf`;
+}
+
+export async function generatePdfBlob(doc: PrintableDocument): Promise<Blob> {
+  const pdf = await buildPdfDocument(doc);
+  return pdf.output("blob");
+}
+
+export function downloadPdfBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function downloadPdf(doc: PrintableDocument): Promise<void> {
   try {
-    const { jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
-
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const currency = doc.currency ?? "AED";
-    let y = 14;
-
-    pdf.setFontSize(16);
-    pdf.text(doc.companyName, 14, y);
-    y += 7;
-    pdf.setFontSize(10);
-    pdf.setTextColor(100);
-    if (doc.branchName) {
-      pdf.text(doc.branchName, 14, y);
-      y += 5;
-    }
-    pdf.setTextColor(0);
-    pdf.setFontSize(14);
-    pdf.text(doc.title, 140, 14, { align: "right" });
-    pdf.setFontSize(11);
-    pdf.text(doc.number, 140, 21, { align: "right" });
-    pdf.text(doc.date, 140, 27, { align: "right" });
-    y = Math.max(y, 32);
-
-    if (doc.partyName) {
-      pdf.setFontSize(10);
-      pdf.text(`${doc.partyLabel ?? "Party"}: ${doc.partyName}`, 14, y);
-      y += 6;
-    }
-    if (doc.status) {
-      pdf.text(`Status: ${doc.status.replace(/_/g, " ")}`, 14, y);
-      y += 6;
-    }
-    for (const m of doc.meta ?? []) {
-      pdf.text(`${m.label}: ${m.value}`, 14, y);
-      y += 5;
-    }
-
-    if (doc.lines.length) {
-      autoTable(pdf, {
-        startY: y + 2,
-        head: [["#", "Description", "Qty", "Unit price", "Total"]],
-        body: doc.lines.map((line, i) => [
-          String(i + 1),
-          line.item_name,
-          `${line.qty} ${line.uom}`,
-          formatMoney(line.unit_price, currency),
-          formatMoney(line.line_total, currency),
-        ]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [30, 58, 95] },
-      });
-      y = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-    }
-
-    pdf.setFontSize(10);
-    if (doc.subtotal !== undefined) {
-      pdf.text(`Subtotal: ${formatMoney(doc.subtotal, currency)}`, 140, y, { align: "right" });
-      y += 5;
-    }
-    if (doc.vat_amount !== undefined) {
-      pdf.text(`VAT: ${formatMoney(doc.vat_amount, currency)}`, 140, y, { align: "right" });
-      y += 5;
-    }
-    if (doc.total !== undefined) {
-      pdf.setFontSize(12);
-      pdf.text(`Total: ${formatMoney(doc.total, currency)}`, 140, y, { align: "right" });
-    } else if (doc.amount !== undefined) {
-      pdf.setFontSize(12);
-      pdf.text(`Amount: ${formatMoney(doc.amount, currency)}`, 140, y, { align: "right" });
-    }
-
-    if (doc.notes) {
-      y += 10;
-      pdf.setFontSize(9);
-      pdf.text(`Notes: ${doc.notes}`, 14, y, { maxWidth: 180 });
-    }
-
-    pdf.save(`${doc.number.replace(/[/\\?%*:|"<>]/g, "-")}.pdf`);
+    const blob = await generatePdfBlob(doc);
+    downloadPdfBlob(blob, pdfFilename(doc));
   } catch {
     openPrintWindow(doc, true);
     throw new Error("PDF library not installed — use Print dialog → Save as PDF");

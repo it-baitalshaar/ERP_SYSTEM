@@ -84,12 +84,14 @@ export function mapCustomer(row: Record<string, unknown>): Customer {
 }
 
 export function mapQuotation(row: Record<string, unknown>): Quotation {
+  const customer = row.customers as { name?: string; phone?: string } | null;
   return {
     id: String(row.id),
     company_id: String(row.company_id),
     branch_id: String(row.branch_id),
     customer_id: String(row.customer_id),
-    customer_name: String((row.customers as { name?: string } | null)?.name ?? ""),
+    customer_name: String(customer?.name ?? ""),
+    customer_phone: customer?.phone ? String(customer.phone) : undefined,
     number: String(row.number),
     date: String(row.date),
     valid_until: row.valid_until ? String(row.valid_until) : "",
@@ -100,12 +102,14 @@ export function mapQuotation(row: Record<string, unknown>): Quotation {
 }
 
 export function mapSalesOrder(row: Record<string, unknown>): SalesOrder {
+  const customer = row.customers as { name?: string; phone?: string } | null;
   return {
     id: String(row.id),
     company_id: String(row.company_id),
     branch_id: String(row.branch_id),
     customer_id: String(row.customer_id),
-    customer_name: String((row.customers as { name?: string } | null)?.name ?? ""),
+    customer_name: String(customer?.name ?? ""),
+    customer_phone: customer?.phone ? String(customer.phone) : undefined,
     number: String(row.number),
     date: String(row.date),
     status: row.status as DocumentStatus,
@@ -116,12 +120,14 @@ export function mapSalesOrder(row: Record<string, unknown>): SalesOrder {
 }
 
 export function mapTaxInvoice(row: Record<string, unknown>): TaxInvoice {
+  const customer = row.customers as { name?: string; phone?: string } | null;
   return {
     id: String(row.id),
     company_id: String(row.company_id),
     branch_id: String(row.branch_id),
     customer_id: String(row.customer_id),
-    customer_name: String((row.customers as { name?: string } | null)?.name ?? ""),
+    customer_name: String(customer?.name ?? ""),
+    customer_phone: customer?.phone ? String(customer.phone) : undefined,
     sales_order_id: row.sales_order_id ? String(row.sales_order_id) : undefined,
     number: String(row.number),
     date: String(row.date),
@@ -138,7 +144,7 @@ export function mapTaxInvoice(row: Record<string, unknown>): TaxInvoice {
 export function mapDeliveryNote(row: Record<string, unknown>): DeliveryNote {
   const invoice = row.tax_invoices as {
     number?: string;
-    customers?: { name?: string };
+    customers?: { name?: string; phone?: string };
   } | null;
   return {
     id: String(row.id),
@@ -147,6 +153,9 @@ export function mapDeliveryNote(row: Record<string, unknown>): DeliveryNote {
     invoice_id: String(row.invoice_id),
     invoice_number: invoice?.number,
     customer_name: invoice?.customers?.name,
+    customer_phone: invoice?.customers?.phone
+      ? String(invoice.customers.phone)
+      : undefined,
     warehouse_id: row.warehouse_id ? String(row.warehouse_id) : undefined,
     number: String(row.number),
     date: String(row.date),

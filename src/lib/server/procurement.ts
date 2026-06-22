@@ -71,8 +71,20 @@ export async function getSupplierOrThrow(db: Db, companyId: string, supplierId: 
   return data;
 }
 
+function supplierJoin(row: Record<string, unknown>): { name: string; phone?: string } {
+  const s = row.suppliers as { name?: string; phone?: string } | null;
+  return {
+    name: String(s?.name ?? ""),
+    phone: s?.phone ? String(s.phone) : undefined,
+  };
+}
+
 function supplierName(row: Record<string, unknown>): string {
-  return String((row.suppliers as { name?: string } | null)?.name ?? "");
+  return supplierJoin(row).name;
+}
+
+function supplierPhone(row: Record<string, unknown>): string | undefined {
+  return supplierJoin(row).phone;
 }
 
 export function mapSupplier(row: Record<string, unknown>): Supplier {
@@ -114,6 +126,7 @@ export function mapPurchaseOrder(row: Record<string, unknown>): PurchaseOrder {
     branch_id: String(row.branch_id),
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
+    supplier_phone: supplierPhone(row),
     material_request_id: row.material_request_id ? String(row.material_request_id) : undefined,
     number: String(row.number),
     date: String(row.date),
@@ -136,6 +149,7 @@ export function mapProformaInvoice(row: Record<string, unknown>): ProformaInvoic
     purchase_order_number: po?.number,
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
+    supplier_phone: supplierPhone(row),
     number: String(row.number),
     date: String(row.date),
     supplier_reference: row.supplier_reference ? String(row.supplier_reference) : undefined,
@@ -155,6 +169,7 @@ export function mapSupplierDeliveryNote(row: Record<string, unknown>): SupplierD
     purchase_order_number: po?.number,
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
+    supplier_phone: supplierPhone(row),
     number: String(row.number),
     date: String(row.date),
     status: row.status as DocumentStatus,
@@ -191,6 +206,7 @@ export function mapSupplierInvoice(row: Record<string, unknown>): SupplierInvoic
     branch_id: String(row.branch_id),
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
+    supplier_phone: supplierPhone(row),
     purchase_order_id: row.purchase_order_id ? String(row.purchase_order_id) : undefined,
     purchase_order_number: po?.number,
     mrn_id: row.mrn_id ? String(row.mrn_id) : undefined,
@@ -213,6 +229,7 @@ export function mapPurchasePayment(row: Record<string, unknown>): PurchasePaymen
     company_id: String(row.company_id),
     supplier_id: String(row.supplier_id),
     supplier_name: supplierName(row),
+    supplier_phone: supplierPhone(row),
     purchase_order_id: row.purchase_order_id ? String(row.purchase_order_id) : undefined,
     supplier_invoice_id: row.supplier_invoice_id
       ? String(row.supplier_invoice_id)

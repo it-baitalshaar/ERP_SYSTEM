@@ -25,6 +25,7 @@ export interface PrintableDocument {
   branchName?: string;
   partyLabel?: string;
   partyName?: string;
+  partyPhone?: string;
   meta?: PrintableMetaRow[];
   lines: PrintableLine[];
   subtotal?: number;

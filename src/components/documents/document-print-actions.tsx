@@ -1,7 +1,9 @@
 "use client";
 
-import { FileDown, Printer } from "lucide-react";
+import { useState } from "react";
+import { FileDown, MessageCircle, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DocumentWhatsAppDialog } from "@/components/documents/document-whatsapp-dialog";
 import type { PrintableDocument } from "@/lib/documents/types";
 import { downloadPdf, openPrintWindow } from "@/lib/documents/print";
 import { toast } from "sonner";
@@ -17,6 +19,8 @@ export function DocumentPrintActions({
   size = "sm",
   className,
 }: DocumentPrintActionsProps) {
+  const [waOpen, setWaOpen] = useState(false);
+
   const handlePrint = () => {
     try {
       openPrintWindow(document, true);
@@ -39,29 +43,60 @@ export function DocumentPrintActions({
     }
   };
 
+  const whatsappBtn =
+    size === "icon" ? (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-[#25D366] hover:text-[#20bd5a]"
+        onClick={() => setWaOpen(true)}
+        title="WhatsApp"
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Button>
+    ) : (
+      <Button
+        size={size}
+        variant="outline"
+        className="border-[#25D366]/40 text-[#128C7E] hover:bg-[#25D366]/10"
+        onClick={() => setWaOpen(true)}
+      >
+        <MessageCircle className="mr-1 h-3 w-3" />
+        WhatsApp
+      </Button>
+    );
+
   if (size === "icon") {
     return (
-      <div className={`flex gap-0.5 ${className ?? ""}`}>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrint} title="Print">
-          <Printer className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void handlePdf()} title="Download PDF">
-          <FileDown className="h-4 w-4" />
-        </Button>
-      </div>
+      <>
+        <div className={`flex gap-0.5 ${className ?? ""}`}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrint} title="Print">
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void handlePdf()} title="Download PDF">
+            <FileDown className="h-4 w-4" />
+          </Button>
+          {whatsappBtn}
+        </div>
+        <DocumentWhatsAppDialog open={waOpen} onOpenChange={setWaOpen} document={document} />
+      </>
     );
   }
 
   return (
-    <div className={`flex flex-wrap gap-1 ${className ?? ""}`}>
-      <Button size={size} variant="outline" onClick={handlePrint}>
-        <Printer className="mr-1 h-3 w-3" />
-        Print
-      </Button>
-      <Button size={size} variant="outline" onClick={() => void handlePdf()}>
-        <FileDown className="mr-1 h-3 w-3" />
-        PDF
-      </Button>
-    </div>
+    <>
+      <div className={`flex flex-wrap gap-1 ${className ?? ""}`}>
+        <Button size={size} variant="outline" onClick={handlePrint}>
+          <Printer className="mr-1 h-3 w-3" />
+          Print
+        </Button>
+        <Button size={size} variant="outline" onClick={() => void handlePdf()}>
+          <FileDown className="mr-1 h-3 w-3" />
+          PDF
+        </Button>
+        {whatsappBtn}
+      </div>
+      <DocumentWhatsAppDialog open={waOpen} onOpenChange={setWaOpen} document={document} />
+    </>
   );
 }

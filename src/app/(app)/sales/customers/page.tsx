@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { CustomerFormDialog } from "@/components/sales/customer-form-dialog";
+import { AdminCustomerDeleteButton } from "@/components/sales/admin-customer-delete-button";
 import { SalesListHeader, formatAed } from "@/components/modules/sales-shared";
 import type { Customer } from "@/lib/types";
 import { fetchCustomers } from "@/lib/data/sales";
@@ -67,17 +68,24 @@ export default function CustomersPage() {
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setEditing(row.original);
-            setDialogOpen(true);
-          }}
-        >
-          <Pencil className="mr-1 h-3 w-3" />
-          Edit
-        </Button>
+        <div className="flex flex-wrap gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditing(row.original);
+              setDialogOpen(true);
+            }}
+          >
+            <Pencil className="mr-1 h-3 w-3" />
+            Edit
+          </Button>
+          <AdminCustomerDeleteButton
+            customerId={row.original.id}
+            companyId={currentCompanyId}
+            onDeleted={() => void load()}
+          />
+        </div>
       ),
     },
   ];

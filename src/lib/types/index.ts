@@ -201,6 +201,7 @@ export interface Quotation {
   branch_id: string;
   customer_id: string;
   customer_name: string;
+  customer_phone?: string;
   number: string;
   date: string;
   valid_until: string;
@@ -215,6 +216,7 @@ export interface SalesOrder {
   branch_id: string;
   customer_id: string;
   customer_name: string;
+  customer_phone?: string;
   number: string;
   date: string;
   status: DocumentStatus;
@@ -229,6 +231,7 @@ export interface TaxInvoice {
   branch_id: string;
   customer_id: string;
   customer_name: string;
+  customer_phone?: string;
   sales_order_id?: string;
   number: string;
   date: string;
@@ -248,6 +251,7 @@ export interface DeliveryNote {
   invoice_id: string;
   invoice_number?: string;
   customer_name?: string;
+  customer_phone?: string;
   warehouse_id?: string;
   number: string;
   date: string;
@@ -263,6 +267,7 @@ export interface PurchaseOrder {
   branch_id: string;
   supplier_id: string;
   supplier_name: string;
+  supplier_phone?: string;
   material_request_id?: string;
   number: string;
   date: string;
@@ -282,6 +287,7 @@ export interface ProformaInvoice {
   purchase_order_number?: string;
   supplier_id: string;
   supplier_name: string;
+  supplier_phone?: string;
   number: string;
   date: string;
   supplier_reference?: string;
@@ -298,6 +304,7 @@ export interface SupplierDeliveryNote {
   purchase_order_number?: string;
   supplier_id: string;
   supplier_name: string;
+  supplier_phone?: string;
   number: string;
   date: string;
   status: DocumentStatus;
@@ -333,6 +340,7 @@ export interface SupplierInvoice {
   branch_id: string;
   supplier_id: string;
   supplier_name: string;
+  supplier_phone?: string;
   purchase_order_id?: string;
   purchase_order_number?: string;
   mrn_id?: string;
@@ -353,6 +361,7 @@ export interface PurchasePayment {
   company_id: string;
   supplier_id: string;
   supplier_name: string;
+  supplier_phone?: string;
   purchase_order_id?: string;
   supplier_invoice_id?: string;
   number: string;

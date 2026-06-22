@@ -22,7 +22,7 @@ export function createPrintColumn<T>(
 ): ColumnDef<T> {
   return {
     id: "print",
-    header: "Print / PDF",
+    header: "Print / Share",
     cell: ({ row }) => <PrintCell row={row.original} toPrintable={toPrintable} />,
   };
 }

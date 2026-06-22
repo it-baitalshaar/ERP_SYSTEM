@@ -44,6 +44,7 @@ export function quotationToPrintable(q: Quotation, ctx: PrintContext): Printable
     status: q.status,
     partyLabel: "Customer",
     partyName: q.customer_name,
+    partyPhone: q.customer_phone,
     meta: q.valid_until ? [{ label: "Valid until", value: q.valid_until }] : undefined,
     lines: linesToPrintable(q.lines),
     subtotal: totals.subtotal,
@@ -58,6 +59,7 @@ export function salesOrderToPrintable(o: SalesOrder, ctx: PrintContext): Printab
     status: o.status,
     partyLabel: "Customer",
     partyName: o.customer_name,
+    partyPhone: o.customer_phone,
     lines: linesToPrintable(o.lines),
     subtotal: totals.subtotal,
     vat_amount: totals.vat_amount,
@@ -70,6 +72,7 @@ export function taxInvoiceToPrintable(inv: TaxInvoice, ctx: PrintContext): Print
     status: inv.status,
     partyLabel: "Customer",
     partyName: inv.customer_name,
+    partyPhone: inv.customer_phone,
     meta: [
       { label: "Paid", value: inv.is_paid ? "Yes" : "No" },
       ...(inv.e_invoice_status
@@ -89,6 +92,7 @@ export function deliveryNoteToPrintable(dn: DeliveryNote, ctx: PrintContext): Pr
     status: dn.status,
     partyLabel: "Customer",
     partyName: dn.customer_name,
+    partyPhone: dn.customer_phone,
     meta: dn.invoice_number ? [{ label: "Invoice", value: dn.invoice_number }] : undefined,
     lines: linesToPrintable(dn.lines),
     subtotal: totals.subtotal,
@@ -118,6 +122,7 @@ export function purchaseOrderToPrintable(po: PurchaseOrder, ctx: PrintContext): 
     status: po.status,
     partyLabel: "Supplier",
     partyName: po.supplier_name,
+    partyPhone: po.supplier_phone,
     meta: [
       { label: "Payment terms", value: po.payment_terms_type.replace("_", " ") },
       ...(po.expected_delivery
@@ -136,6 +141,7 @@ export function proformaToPrintable(pfi: ProformaInvoice, ctx: PrintContext): Pr
     status: pfi.status,
     partyLabel: "Supplier",
     partyName: pfi.supplier_name,
+    partyPhone: pfi.supplier_phone,
     meta: [
       ...(pfi.purchase_order_number
         ? [{ label: "LPO", value: pfi.purchase_order_number }]
@@ -165,6 +171,7 @@ export function supplierDeliveryNoteToPrintable(
       status: sdn.status,
       partyLabel: "Supplier",
       partyName: sdn.supplier_name,
+      partyPhone: sdn.supplier_phone,
       meta: [
         ...(sdn.purchase_order_number ? [{ label: "LPO", value: sdn.purchase_order_number }] : []),
         ...(sdn.carrier ? [{ label: "Carrier", value: sdn.carrier }] : []),
@@ -201,6 +208,7 @@ export function supplierInvoiceToPrintable(
     status: inv.status,
     partyLabel: "Supplier",
     partyName: inv.supplier_name,
+    partyPhone: inv.supplier_phone,
     lines: linesToPrintable(inv.lines),
     subtotal: inv.subtotal,
     vat_amount: inv.vat_amount,
@@ -221,6 +229,7 @@ export function purchasePaymentToPrintable(
     status: pay.status,
     partyLabel: "Supplier",
     partyName: pay.supplier_name,
+    partyPhone: pay.supplier_phone,
     amount: pay.amount,
     currency: pay.currency,
     meta: [
