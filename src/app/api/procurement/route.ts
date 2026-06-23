@@ -6,6 +6,7 @@ import {
   getSupplierOrThrow,
   mapMaterialReceiptNote,
   mapMaterialRequest,
+  MATERIAL_REQUEST_SELECT,
   mapProformaInvoice,
   mapPurchaseOrder,
   mapPurchasePayment,
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
     if (resource === "material_requests") {
       const { data, error } = await db
         .from("material_requests")
-        .select("*, profiles(full_name)")
+        .select(MATERIAL_REQUEST_SELECT)
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -256,7 +257,7 @@ export async function POST(request: Request) {
       const { data, error } = await db
         .from("material_requests")
         .insert(payload)
-        .select("*, profiles(full_name)")
+        .select(MATERIAL_REQUEST_SELECT)
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -430,7 +431,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
-          .select("*, profiles(full_name)")
+          .select(MATERIAL_REQUEST_SELECT)
           .single();
         if (error) return NextResponse.json({ error: "Only draft requests can be submitted" }, { status: 400 });
         return NextResponse.json({ data: mapMaterialRequest(data) });
@@ -447,7 +448,7 @@ export async function PATCH(request: Request) {
           .eq("id", id)
           .eq("company_id", companyId)
           .in("status", ["draft", "pending_approval"])
-          .select("*, profiles(full_name)")
+          .select(MATERIAL_REQUEST_SELECT)
           .single();
         if (error) return NextResponse.json({ error: "Request cannot be approved" }, { status: 400 });
         return NextResponse.json({ data: mapMaterialRequest(data) });
@@ -459,7 +460,7 @@ export async function PATCH(request: Request) {
           .update({ status: "rejected" satisfies DocumentStatus })
           .eq("id", id)
           .eq("company_id", companyId)
-          .select("*, profiles(full_name)")
+          .select(MATERIAL_REQUEST_SELECT)
           .single();
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
         return NextResponse.json({ data: mapMaterialRequest(data) });

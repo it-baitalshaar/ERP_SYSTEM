@@ -26,6 +26,9 @@ export { assertCompanyAccess, normalizeLines, resolveBranchCode };
 
 type Db = NonNullable<ReturnType<typeof createAdminClientOrNull>>;
 
+/** Disambiguate profiles join — table has requested_by + approved_by FKs to profiles. */
+export const MATERIAL_REQUEST_SELECT = "*, profiles!requested_by(full_name)";
+
 type NumberedTable =
   | "material_requests"
   | "purchase_orders"
