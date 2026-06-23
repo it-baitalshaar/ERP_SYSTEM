@@ -1,4 +1,4 @@
-import type { Item, StockLevelRow } from "@/lib/types";
+import type { Item, StockLevelRow, StockMovementRow } from "@/lib/types";
 import { items as mockItems } from "@/lib/mock-data/inventory";
 
 async function inventoryRequest<T>(
@@ -34,6 +34,15 @@ export async function fetchStockLevels(companyId: string): Promise<StockLevelRow
   const { data, fromApi } = await fetchInventoryResource<StockLevelRow>(
     companyId,
     "stock_levels"
+  );
+  if (fromApi) return data;
+  return [];
+}
+
+export async function fetchStockMovements(companyId: string): Promise<StockMovementRow[]> {
+  const { data, fromApi } = await fetchInventoryResource<StockMovementRow>(
+    companyId,
+    "stock_movements"
   );
   if (fromApi) return data;
   return [];

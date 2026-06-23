@@ -72,6 +72,7 @@ export function ThreeWayMatchPanel({ match, compact }: ThreeWayMatchPanelProps) 
               <th className="p-2 font-medium text-right">LPO qty</th>
               <th className="p-2 font-medium text-right">LPO price</th>
               <th className="p-2 font-medium text-right">MRN qty</th>
+              <th className="p-2 font-medium text-right">MRN price</th>
               <th className="p-2 font-medium text-right">Inv qty</th>
               <th className="p-2 font-medium text-right">Inv price</th>
               <th className="p-2 font-medium">Status</th>
@@ -84,6 +85,7 @@ export function ThreeWayMatchPanel({ match, compact }: ThreeWayMatchPanelProps) 
                 <td className="p-2 text-right">{line.lpo_qty}</td>
                 <td className="p-2 text-right">{formatAed(line.lpo_unit_price)}</td>
                 <td className="p-2 text-right">{line.mrn_qty}</td>
+                <td className="p-2 text-right">{formatAed(line.mrn_unit_price)}</td>
                 <td className="p-2 text-right">{line.invoice_qty}</td>
                 <td className="p-2 text-right">{formatAed(line.invoice_unit_price)}</td>
                 <td className="p-2">

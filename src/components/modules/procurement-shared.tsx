@@ -157,6 +157,11 @@ export const purchasePaymentColumns: ColumnDef<PurchasePayment>[] = [
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
+    accessorKey: "supplier_invoice_number",
+    header: "Invoice",
+    cell: ({ row }) => row.original.supplier_invoice_number ?? "—",
+  },
+  {
     accessorKey: "amount",
     header: "Amount",
     cell: ({ row }) => formatAed(row.original.amount),

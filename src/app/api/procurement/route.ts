@@ -27,6 +27,9 @@ import type {
   PurchasePaymentType,
 } from "@/lib/types";
 import { postMrnToInventory } from "@/lib/server/inventory";
+import { detectPriceVariance } from "@/lib/procurement/mrn-variance";
+import { updateLpoLinesFromReceivedPrices } from "@/lib/server/mrn-lpo-variance";
+import { addSupplierBalance, applySupplierPayment } from "@/lib/server/supplier-balance";
 import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
 import {
   assertThreeWayMatchForPost,
@@ -177,7 +180,7 @@ export async function GET(request: Request) {
     if (resource === "purchase_payments") {
       const { data, error } = await db
         .from("purchase_payments")
-        .select("*, suppliers(name, phone)")
+        .select("*, suppliers(name, phone), supplier_invoices(number)")
         .eq("company_id", companyId)
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -360,7 +363,7 @@ export async function POST(request: Request) {
           currency: String(body.currency ?? "AED"),
           reference: body.reference ? String(body.reference) : null,
         })
-        .select("*, suppliers(name, phone)")
+        .select("*, suppliers(name, phone), supplier_invoices(number)")
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -668,7 +671,7 @@ export async function PATCH(request: Request) {
     if (resource === "material_receipt_notes" && action === "post") {
       const { data: mrnRow, error: fetchError } = await db
         .from("material_receipt_notes")
-        .select("*")
+        .select("*, purchase_orders(id, lines)")
         .eq("id", id)
         .eq("company_id", companyId)
         .single();
@@ -681,6 +684,31 @@ export async function PATCH(request: Request) {
       }
 
       const priceUpdates = (body.price_updates as PriceUpdateLine[] | undefined) ?? mrnRow.price_updates;
+      const lpoLines = ((mrnRow.purchase_orders as { lines?: LineItem[] })?.lines ?? []) as LineItem[];
+      const variances = detectPriceVariance(lpoLines, priceUpdates as PriceUpdateLine[]);
+      const hasVariance = variances.length > 0;
+      const adminApprove = Boolean(body.approve_lpo_price_update) && isAdminRole(token.role_id);
+
+      if (hasVariance && !adminApprove) {
+        return NextResponse.json(
+          {
+            error:
+              "Received price differs from LPO — a Company Admin or Super Admin must approve and update the LPO before posting.",
+            needs_lpo_approval: true,
+            variances,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (hasVariance && adminApprove) {
+        await updateLpoLinesFromReceivedPrices(
+          db,
+          companyId,
+          String(mrnRow.purchase_order_id),
+          priceUpdates as PriceUpdateLine[]
+        );
+      }
 
       try {
         await postMrnToInventory(db, companyId, {
@@ -698,6 +726,10 @@ export async function PATCH(request: Request) {
       const updates: Record<string, unknown> = {
         status: "posted" satisfies DocumentStatus,
         price_updates: priceUpdates,
+        lpo_price_variance: hasVariance,
+        variance_approved: hasVariance && adminApprove,
+        variance_approved_by: hasVariance && adminApprove ? token.sub : null,
+        variance_approved_at: hasVariance && adminApprove ? new Date().toISOString() : null,
       };
 
       const { data, error } = await db
@@ -741,20 +773,21 @@ export async function PATCH(request: Request) {
           .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
           .single();
         if (error) return NextResponse.json({ error: "Only draft invoices can be posted" }, { status: 400 });
-        return NextResponse.json({ data: mapSupplierInvoice(data) });
+
+        const posted = mapSupplierInvoice(data);
+        await addSupplierBalance(db, posted.supplier_id, posted.total);
+
+        return NextResponse.json({ data: posted });
       }
 
       if (action === "mark_paid") {
-        const { data, error } = await db
-          .from("supplier_invoices")
-          .update({ is_paid: true })
-          .eq("id", id)
-          .eq("company_id", companyId)
-          .eq("status", "posted")
-          .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
-          .single();
-        if (error) return NextResponse.json({ error: "Only posted invoices can be marked paid" }, { status: 400 });
-        return NextResponse.json({ data: mapSupplierInvoice(data) });
+        return NextResponse.json(
+          {
+            error:
+              "Use Purchase Payments to pay suppliers — record a payment linked to this invoice.",
+          },
+          { status: 400 }
+        );
       }
     }
 
@@ -765,15 +798,44 @@ export async function PATCH(request: Request) {
     }
 
     if (resource === "purchase_payments" && action === "post") {
+      const { data: payRow, error: fetchErr } = await db
+        .from("purchase_payments")
+        .select("*")
+        .eq("id", id)
+        .eq("company_id", companyId)
+        .eq("status", "draft")
+        .single();
+
+      if (fetchErr || !payRow) {
+        return NextResponse.json({ error: "Only draft payments can be posted" }, { status: 400 });
+      }
+
+      await applySupplierPayment(db, String(payRow.supplier_id), Number(payRow.amount));
+
+      if (payRow.supplier_invoice_id) {
+        const { data: inv } = await db
+          .from("supplier_invoices")
+          .select("total, is_paid")
+          .eq("id", payRow.supplier_invoice_id)
+          .single();
+
+        if (inv && !inv.is_paid && Number(payRow.amount) >= Number(inv.total) - 0.02) {
+          await db
+            .from("supplier_invoices")
+            .update({ is_paid: true })
+            .eq("id", payRow.supplier_invoice_id);
+        }
+      }
+
       const { data, error } = await db
         .from("purchase_payments")
         .update({ status: "posted" satisfies DocumentStatus })
         .eq("id", id)
         .eq("company_id", companyId)
-        .eq("status", "draft")
-        .select("*, suppliers(name, phone)")
+        .select("*, suppliers(name, phone), supplier_invoices(number)")
         .single();
-      if (error) return NextResponse.json({ error: "Only draft payments can be posted" }, { status: 400 });
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ data: mapPurchasePayment(data) });
     }
 

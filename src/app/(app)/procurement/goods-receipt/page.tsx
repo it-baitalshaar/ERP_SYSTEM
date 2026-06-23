@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, FileText } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -12,24 +12,35 @@ import { mrnToPrintable } from "@/lib/documents/mappers";
 import { ProcurementListHeader, mrnColumns } from "@/components/modules/procurement-shared";
 import { MrnToInvoiceDialog } from "@/components/procurement/mrn-to-invoice-dialog";
 import { MrnPostDialog } from "@/components/procurement/mrn-post-dialog";
-import { fetchMaterialReceiptNotes } from "@/lib/data/procurement";
-import type { MaterialReceiptNote } from "@/lib/types";
+import { fetchMaterialReceiptNotes, fetchPurchaseOrders } from "@/lib/data/procurement";
+import type { LineItem, MaterialReceiptNote, PurchaseOrder } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 
 export default function MaterialReceiptNotesPage() {
   const { currentCompanyId, currentBranchId } = useAppStore();
   const [rows, setRows] = useState<MaterialReceiptNote[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [postOpen, setPostOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [selectedMrn, setSelectedMrn] = useState<MaterialReceiptNote | null>(null);
 
   const load = useCallback(async () => {
-    setRows(await fetchMaterialReceiptNotes(currentCompanyId));
+    const [mrns, orders] = await Promise.all([
+      fetchMaterialReceiptNotes(currentCompanyId),
+      fetchPurchaseOrders(currentCompanyId),
+    ]);
+    setRows(mrns);
+    setPurchaseOrders(orders);
   }, [currentCompanyId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const selectedLpoLines: LineItem[] = useMemo(() => {
+    if (!selectedMrn?.purchase_order_id) return [];
+    return purchaseOrders.find((p) => p.id === selectedMrn.purchase_order_id)?.lines ?? [];
+  }, [selectedMrn, purchaseOrders]);
 
   const columns: ColumnDef<MaterialReceiptNote>[] = [
     ...mrnColumns,
@@ -107,6 +118,7 @@ export default function MaterialReceiptNotesPage() {
         onOpenChange={setPostOpen}
         companyId={currentCompanyId}
         mrn={selectedMrn}
+        lpoLines={selectedLpoLines}
         onPosted={() => void load()}
       />
 

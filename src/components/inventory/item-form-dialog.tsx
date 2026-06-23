@@ -12,8 +12,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { UomSelect } from "@/components/inventory/uom-select";
 import { createItem, updateItem } from "@/lib/data/inventory";
-import type { Item } from "@/lib/types";
+import { UOM_SUBUNIT_HINTS } from "@/lib/inventory/uom";
+import type { Item, UomConversion } from "@/lib/types";
 import { toast } from "sonner";
 
 interface ItemFormDialogProps {
@@ -29,7 +31,9 @@ const emptyForm = {
   name: "",
   base_uom: "pcs",
   reorder_level: 0,
+  cost_price: 0,
   unit_price: 0,
+  subunit_factor: 1,
   is_batch_managed: false,
 };
 
@@ -45,18 +49,32 @@ export function ItemFormDialog({
 
   useEffect(() => {
     if (item) {
+      const extra = item.uom_conversions?.find((c) => c.uom !== item.base_uom);
       setForm({
         sku: item.sku,
         name: item.name,
         base_uom: item.base_uom,
         reorder_level: item.reorder_level,
+        cost_price: item.cost_price ?? 0,
         unit_price: item.unit_price,
+        subunit_factor: extra?.factor ?? UOM_SUBUNIT_HINTS[item.base_uom]?.defaultFactor ?? 1,
         is_batch_managed: item.is_batch_managed,
       });
     } else {
       setForm(emptyForm);
     }
   }, [item, open]);
+
+  const buildConversions = (): UomConversion[] => {
+    const hint = UOM_SUBUNIT_HINTS[form.base_uom];
+    if (!hint || hint.subUom === form.base_uom) {
+      return [{ uom: form.base_uom, factor: 1 }];
+    }
+    return [
+      { uom: form.base_uom, factor: 1 },
+      { uom: hint.subUom, factor: form.subunit_factor },
+    ];
+  };
 
   const handleSave = async () => {
     if (!form.sku.trim() || !form.name.trim()) {
@@ -68,7 +86,7 @@ export function ItemFormDialog({
     const payload = {
       ...form,
       category_id: "",
-      uom_conversions: [{ uom: form.base_uom, factor: 1 }],
+      uom_conversions: buildConversions(),
     };
     const result = item
       ? await updateItem(companyId, item.id, payload)
@@ -85,9 +103,11 @@ export function ItemFormDialog({
     onOpenChange(false);
   };
 
+  const subHint = UOM_SUBUNIT_HINTS[form.base_uom];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item ? "Edit item" : "New item"}</DialogTitle>
         </DialogHeader>
@@ -102,11 +122,16 @@ export function ItemFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="item-uom">Base UOM</Label>
-              <Input
-                id="item-uom"
+              <Label>Base UOM</Label>
+              <UomSelect
                 value={form.base_uom}
-                onChange={(e) => setForm({ ...form, base_uom: e.target.value })}
+                onValueChange={(base_uom) =>
+                  setForm({
+                    ...form,
+                    base_uom,
+                    subunit_factor: UOM_SUBUNIT_HINTS[base_uom]?.defaultFactor ?? 1,
+                  })
+                }
               />
             </div>
           </div>
@@ -118,9 +143,34 @@ export function ItemFormDialog({
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
+          {subHint && subHint.subUom !== form.base_uom && (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label>{subHint.label}</Label>
+              <Input
+                type="number"
+                min={0.001}
+                step="any"
+                value={form.subunit_factor}
+                onChange={(e) => setForm({ ...form, subunit_factor: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground">
+                1 {form.base_uom} = {form.subunit_factor} {subHint.subUom}
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="item-price">Unit price (AED)</Label>
+              <Label htmlFor="item-cost">Cost price (buy)</Label>
+              <Input
+                id="item-cost"
+                type="number"
+                min={0}
+                value={form.cost_price}
+                onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-price">Sale price (sell)</Label>
               <Input
                 id="item-price"
                 type="number"
@@ -129,21 +179,21 @@ export function ItemFormDialog({
                 onChange={(e) => setForm({ ...form, unit_price: Number(e.target.value) })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-reorder">Reorder level</Label>
-              <Input
-                id="item-reorder"
-                type="number"
-                min={0}
-                value={form.reorder_level}
-                onChange={(e) => setForm({ ...form, reorder_level: Number(e.target.value) })}
-              />
-            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="item-reorder">Reorder level</Label>
+            <Input
+              id="item-reorder"
+              type="number"
+              min={0}
+              value={form.reorder_level}
+              onChange={(e) => setForm({ ...form, reorder_level: Number(e.target.value) })}
+            />
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
               <p className="text-sm font-medium">Batch managed</p>
-              <p className="text-xs text-muted-foreground">Ceramic tiles, lots, etc.</p>
+              <p className="text-xs text-muted-foreground">Tiles, lots, etc.</p>
             </div>
             <Switch
               checked={form.is_batch_managed}

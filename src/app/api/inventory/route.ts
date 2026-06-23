@@ -50,6 +50,29 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: (data ?? []).map(mapStockLevelRow) });
     }
 
+    if (resource === "stock_movements") {
+      const { data, error } = await db
+        .from("stock_movements")
+        .select("*, items(name, sku), warehouses(name, code)")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({
+        data: (data ?? []).map((row) => ({
+          id: String(row.id),
+          item_name: String((row.items as { name?: string })?.name ?? ""),
+          item_sku: String((row.items as { sku?: string })?.sku ?? ""),
+          warehouse_name: String((row.warehouses as { name?: string })?.name ?? ""),
+          movement_type: String(row.movement_type),
+          qty: Number(row.qty),
+          reference_type: String(row.reference_type),
+          reference_number: row.reference_number ? String(row.reference_number) : "",
+          created_at: String(row.created_at),
+        })),
+      });
+    }
+
     return NextResponse.json({ error: "Unknown resource" }, { status: 400 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Request failed";
@@ -92,6 +115,7 @@ export async function POST(request: Request) {
         uom_conversions: body.uom_conversions as UomConversion[] | undefined,
         is_batch_managed: Boolean(body.is_batch_managed),
         reorder_level: Number(body.reorder_level ?? 0),
+        cost_price: Number(body.cost_price ?? body.unit_price ?? 0),
         unit_price: Number(body.unit_price ?? 0),
       });
 
@@ -136,6 +160,7 @@ export async function PATCH(request: Request) {
       if (body.uom_conversions !== undefined) updates.uom_conversions = body.uom_conversions;
       if (body.is_batch_managed !== undefined) updates.is_batch_managed = Boolean(body.is_batch_managed);
       if (body.reorder_level !== undefined) updates.reorder_level = Number(body.reorder_level);
+      if (body.cost_price !== undefined) updates.cost_price = Number(body.cost_price);
       if (body.unit_price !== undefined) updates.unit_price = Number(body.unit_price);
       if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
 

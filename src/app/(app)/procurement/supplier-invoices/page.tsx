@@ -129,14 +129,9 @@ export default function SupplierInvoicesPage() {
               </>
             )}
             {inv.status === "posted" && !inv.is_paid && (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => void runAction(inv.id, "mark_paid", "Marked as paid")}
-              >
-                Mark paid
-              </Button>
+              <span className="text-xs text-muted-foreground self-center px-1">
+                Pay via Purchase Payments
+              </span>
             )}
             <AdminDocumentDeleteButton
               module="procurement"

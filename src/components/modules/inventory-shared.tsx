@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
-import type { Item, StockLevelRow } from "@/lib/types";
+import type { Item, StockLevelRow, StockMovementRow } from "@/lib/types";
 
 export const formatAed = (n: number) => `AED ${n.toLocaleString()}`;
 
@@ -37,8 +37,13 @@ export const itemColumns: ColumnDef<Item>[] = [
   { accessorKey: "name", header: "Product" },
   { accessorKey: "base_uom", header: "UOM" },
   {
+    accessorKey: "cost_price",
+    header: "Cost (buy)",
+    cell: ({ row }) => formatAed(row.original.cost_price ?? 0),
+  },
+  {
     accessorKey: "unit_price",
-    header: "Unit price",
+    header: "Sale price",
     cell: ({ row }) => formatAed(row.original.unit_price),
   },
   {
@@ -71,5 +76,34 @@ export const stockLevelColumns: ColumnDef<StockLevelRow>[] = [
     accessorKey: "reorder_level",
     header: "Reorder",
     cell: ({ row }) => row.original.reorder_level.toLocaleString(),
+  },
+];
+
+export const stockMovementColumns: ColumnDef<StockMovementRow>[] = [
+  { accessorKey: "created_at", header: "Date" },
+  { accessorKey: "item_sku", header: "SKU" },
+  { accessorKey: "item_name", header: "Product" },
+  { accessorKey: "warehouse_name", header: "Warehouse" },
+  {
+    accessorKey: "movement_type",
+    header: "Type",
+    cell: ({ row }) => (
+      <span className={row.original.movement_type === "in" ? "text-success" : "text-destructive"}>
+        {row.original.movement_type === "in" ? "Stock in" : "Stock out"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "qty",
+    header: "Qty",
+    cell: ({ row }) => row.original.qty.toLocaleString(),
+  },
+  {
+    id: "reference",
+    header: "Reference",
+    cell: ({ row }) =>
+      row.original.reference_number
+        ? `${row.original.reference_type} ${row.original.reference_number}`
+        : row.original.reference_type,
   },
 ];

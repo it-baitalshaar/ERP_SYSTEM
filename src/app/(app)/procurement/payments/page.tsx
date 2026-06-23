@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -27,24 +27,30 @@ import { AdminDocumentDeleteButton } from "@/components/documents/admin-document
 import { purchasePaymentToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
+  formatAed,
   purchasePaymentColumns,
 } from "@/components/modules/procurement-shared";
 import {
   createPurchasePayment,
   fetchPurchasePayments,
+  fetchSupplierInvoices,
   fetchSuppliers,
   procurementAction,
 } from "@/lib/data/procurement";
-import type { PurchasePayment, PurchasePaymentType, Supplier } from "@/lib/types";
+import type { PurchasePayment, PurchasePaymentType, Supplier, SupplierInvoice } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
+
+const NONE_INVOICE = "__none__";
 
 export default function PurchasePaymentsPage() {
   const { currentCompanyId, currentBranchId } = useAppStore();
   const [payments, setPayments] = useState<PurchasePayment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
+  const [supplierInvoiceId, setSupplierInvoiceId] = useState<string>(NONE_INVOICE);
   const [amount, setAmount] = useState(0);
   const [paymentType, setPaymentType] = useState<PurchasePaymentType>("final");
   const [reference, setReference] = useState("");
@@ -52,24 +58,52 @@ export default function PurchasePaymentsPage() {
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [p, s] = await Promise.all([
+    const [p, s, inv] = await Promise.all([
       fetchPurchasePayments(currentCompanyId),
       fetchSuppliers(currentCompanyId),
+      fetchSupplierInvoices(currentCompanyId),
     ]);
     setPayments(p);
     setSuppliers(s);
+    setInvoices(inv);
   }, [currentCompanyId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const payableInvoices = useMemo(
+    () =>
+      invoices.filter(
+        (inv) =>
+          inv.supplier_id === supplierId &&
+          inv.status === "posted" &&
+          !inv.is_paid
+      ),
+    [invoices, supplierId]
+  );
+
   const openNew = () => {
-    setSupplierId(suppliers.find((s) => !s.is_blocked)?.id ?? "");
+    const first = suppliers.find((s) => !s.is_blocked);
+    setSupplierId(first?.id ?? "");
+    setSupplierInvoiceId(NONE_INVOICE);
     setAmount(0);
     setPaymentType("final");
     setReference("");
     setDialogOpen(true);
+  };
+
+  const onSupplierChange = (id: string) => {
+    setSupplierId(id);
+    setSupplierInvoiceId(NONE_INVOICE);
+    setAmount(0);
+  };
+
+  const onInvoiceChange = (id: string) => {
+    setSupplierInvoiceId(id);
+    if (id === NONE_INVOICE) return;
+    const inv = invoices.find((i) => i.id === id);
+    if (inv) setAmount(inv.total);
   };
 
   const handleCreate = async () => {
@@ -87,6 +121,8 @@ export default function PurchasePaymentsPage() {
       company_id: currentCompanyId,
       branch_id: currentBranchId,
       supplier_id: supplierId,
+      supplier_invoice_id:
+        supplierInvoiceId !== NONE_INVOICE ? supplierInvoiceId : undefined,
       amount,
       payment_type: paymentType,
       reference: reference || undefined,
@@ -98,7 +134,7 @@ export default function PurchasePaymentsPage() {
       return;
     }
 
-    toast.success("Payment recorded");
+    toast.success("Payment recorded — post it to update supplier balance");
     setDialogOpen(false);
     void load();
   };
@@ -116,7 +152,7 @@ export default function PurchasePaymentsPage() {
       toast.error(result.error);
       return;
     }
-    toast.success("Payment posted");
+    toast.success("Payment posted — supplier balance updated");
     void load();
   };
 
@@ -157,7 +193,7 @@ export default function PurchasePaymentsPage() {
     <div>
       <ProcurementListHeader
         title="Purchase Payments"
-        description="Step 8 — advance, on delivery, partial, final, or credit settlement"
+        description="Record payments linked to supplier invoices — posting reduces supplier balance"
         action={
           <Button onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" />
@@ -179,7 +215,7 @@ export default function PurchasePaymentsPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Supplier</Label>
-              <Select value={supplierId || undefined} onValueChange={setSupplierId}>
+              <Select value={supplierId || undefined} onValueChange={onSupplierChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
@@ -189,10 +225,34 @@ export default function PurchasePaymentsPage() {
                     .map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
+                        {(s.outstanding_balance ?? 0) > 0
+                          ? ` — due ${formatAed(s.outstanding_balance ?? 0)}`
+                          : ""}
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Supplier invoice (optional)</Label>
+              <Select value={supplierInvoiceId} onValueChange={onInvoiceChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Link to posted invoice" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_INVOICE}>No invoice — on-account</SelectItem>
+                  {payableInvoices.map((inv) => (
+                    <SelectItem key={inv.id} value={inv.id}>
+                      {inv.number} — {formatAed(inv.total)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {supplierId && payableInvoices.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No unpaid posted invoices for this supplier.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Payment type</Label>

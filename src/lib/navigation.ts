@@ -39,6 +39,7 @@ export const navigation: NavGroup[] = [
       { key: "inv-dashboard", label: "Dashboard", href: "/inventory", icon: "LayoutDashboard", feature_flag: "mod_inventory", module_key: "inventory" },
       { key: "items", label: "Items / Products", href: "/inventory/items", icon: "Box", feature_flag: "mod_inventory", module_key: "inventory" },
       { key: "stock-levels", label: "Stock Levels", href: "/inventory/stock-levels", icon: "Layers", feature_flag: "mod_inventory", module_key: "inventory" },
+      { key: "stock-movements", label: "Stock Movements", href: "/inventory/movements", icon: "History", feature_flag: "mod_inventory", module_key: "inventory" },
       { key: "transfers", label: "Warehouse Transfers", href: "/inventory/transfers", icon: "ArrowLeftRight", feature_flag: "mod_inventory", module_key: "inventory" },
       { key: "adjustments", label: "Stock Adjustments", href: "/inventory/adjustments", icon: "SlidersHorizontal", feature_flag: "mod_inventory", module_key: "inventory" },
       { key: "batch", label: "Batch/Lot Tracking", href: "/inventory/batch", icon: "Tags", feature_flag: "feat_batch_tracking", module_key: "inventory" },

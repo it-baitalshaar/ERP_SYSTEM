@@ -103,6 +103,7 @@ export interface Supplier {
   currency: string;
   credit_days: number;
   is_blocked: boolean;
+  outstanding_balance?: number;
 }
 
 export type PurchasePaymentTerms = "advance" | "on_delivery" | "credit";
@@ -113,6 +114,8 @@ export interface PriceUpdateLine {
   item_name: string;
   old_unit_price: number;
   new_unit_price: number;
+  /** Selling price per base UOM after receipt (optional). */
+  new_sale_price?: number;
 }
 
 /** Material request — step 1 (authorize before purchase). */
@@ -148,6 +151,7 @@ export interface Item {
   uom_conversions: UomConversion[];
   is_batch_managed: boolean;
   reorder_level: number;
+  cost_price: number;
   unit_price: number;
   image_url?: string;
 }
@@ -174,6 +178,18 @@ export interface StockLevelRow extends StockLevel {
   item_sku: string;
   warehouse_name: string;
   warehouse_code: string;
+}
+
+export interface StockMovementRow {
+  id: string;
+  item_name: string;
+  item_sku: string;
+  warehouse_name: string;
+  movement_type: string;
+  qty: number;
+  reference_type: string;
+  reference_number: string;
+  created_at: string;
 }
 
 export type DocumentStatus =
@@ -327,6 +343,8 @@ export interface MaterialReceiptNote {
   lines: LineItem[];
   price_updates: PriceUpdateLine[];
   total: number;
+  lpo_price_variance?: boolean;
+  variance_approved?: boolean;
 }
 
 export interface GoodsReceipt extends MaterialReceiptNote {
@@ -364,6 +382,7 @@ export interface PurchasePayment {
   supplier_phone?: string;
   purchase_order_id?: string;
   supplier_invoice_id?: string;
+  supplier_invoice_number?: string;
   number: string;
   date: string;
   payment_type: PurchasePaymentType;

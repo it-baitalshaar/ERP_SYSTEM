@@ -99,6 +99,7 @@ export function mapSupplier(row: Record<string, unknown>): Supplier {
     currency: String(row.currency ?? "AED"),
     credit_days: Number(row.credit_days ?? 30),
     is_blocked: Boolean(row.is_blocked),
+    outstanding_balance: Number(row.outstanding_balance ?? 0),
   };
 }
 
@@ -194,6 +195,8 @@ export function mapMaterialReceiptNote(row: Record<string, unknown>): MaterialRe
     lines: (row.lines as LineItem[]) ?? [],
     price_updates: (row.price_updates as PriceUpdateLine[]) ?? [],
     total: Number(row.total),
+    lpo_price_variance: Boolean(row.lpo_price_variance),
+    variance_approved: Boolean(row.variance_approved),
   };
 }
 
@@ -224,6 +227,7 @@ export function mapSupplierInvoice(row: Record<string, unknown>): SupplierInvoic
 }
 
 export function mapPurchasePayment(row: Record<string, unknown>): PurchasePayment {
+  const inv = row.supplier_invoices as { number?: string } | null;
   return {
     id: String(row.id),
     company_id: String(row.company_id),
@@ -234,6 +238,7 @@ export function mapPurchasePayment(row: Record<string, unknown>): PurchasePaymen
     supplier_invoice_id: row.supplier_invoice_id
       ? String(row.supplier_invoice_id)
       : undefined,
+    supplier_invoice_number: inv?.number,
     number: String(row.number),
     date: String(row.date),
     payment_type: row.payment_type as PurchasePaymentType,

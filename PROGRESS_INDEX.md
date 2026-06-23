@@ -4,15 +4,15 @@ Last updated: 2026-06-16 by Cursor Agent
 ## 1. Status Snapshot
 - Phase: 2 — Supabase + Sales + Procurement + Inventory core wired
 - Stack: Next.js 15 + TS + Tailwind + shadcn + Zustand + Supabase
-- Backend: Migrations through `0011_inventory.sql`
+- Backend: Migrations through `0012_building_materials.sql`
 - Structure: `.cursor/rules/erp-project-structure.mdc` (always apply)
 
 ## 2. Module Build Status
 | Module | Route | Status | Notes |
 |---|---|---|---|
-| Inventory (items, stock, movements) | /inventory/* | in-progress | Items CRUD; stock via MRN in / delivery out |
+| Inventory (items, stock, movements) | /inventory/* | in-progress | UOM catalog; cost/sale on items; MRN updates stock + pricing |
 | Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Print/PDF on all transactional lists |
-| Procurement (full purchase cycle) | /procurement/* | in-progress | Print/PDF on MR→payment documents |
+| Procurement (full purchase cycle) | /procurement/* | in-progress | LPO variance approval; linked purchase payments |
 | Document print / PDF | cross-module | done | `src/lib/documents/*`, `createPrintColumn` on lists |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
 | User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
@@ -43,13 +43,19 @@ Last updated: 2026-06-16 by Cursor Agent
 ## 6. Known Gaps / Coming Soon
 - RFQ / vendor comparison — nav `coming_soon` only
 - ~~3-way match UI (LPO vs MRN vs SINV)~~ — done (MRN → invoice + post validation)
+- ~~LPO price variance~~ — admin approves; LPO updated (not payable from stale LPO)
+- ~~Purchase payments linked to supplier invoices~~ — post reduces supplier balance
+- ~~UOM catalog (box, pcs, dozen, sqm, etc.)~~ — item form + `uom_conversions`
+- ~~Stock movements list~~ — `/inventory/movements`
+- Customer receipt payments (mirror of purchase payments) — sales invoices still use mark paid
 - Purchase returns, landed cost
 - Stock transfers, adjustments, batch lots
 - Finance / GL integration
-- Sales & procurement must use real item IDs from `/inventory/items`
 
 ## 7. Next Session Should Start With
-- Payment allocation to supplier invoice / LPO; supplier outstanding balance; stock movements UI.
+- Run migration `0012_building_materials.sql` on Supabase; smoke-test MR→LPO→MRN (price variance)→invoice→payment→stock.
+- Customer payment receipts linked to tax invoices (like purchase payments).
+- Stock transfers / adjustments UI.
 
 ## 8. Supabase Schema Status
 | Migration | Status |
@@ -58,3 +64,4 @@ Last updated: 2026-06-16 by Cursor Agent
 | 0002–0009 | org, auth, backups, user module perms |
 | 0010_procurement.sql | ready — full purchase chain |
 | 0011_inventory.sql | ready — items, stock_levels, movements, delivery_notes |
+| 0012_building_materials.sql | ready — cost_price, supplier balance, MRN variance flags |

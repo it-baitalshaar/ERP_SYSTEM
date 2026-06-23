@@ -24,6 +24,7 @@ export function mapItem(row: Record<string, unknown>): Item {
     uom_conversions: (row.uom_conversions as UomConversion[]) ?? [],
     is_batch_managed: Boolean(row.is_batch_managed),
     reorder_level: Number(row.reorder_level ?? 0),
+    cost_price: Number(row.cost_price ?? row.unit_price ?? 0),
     unit_price: Number(row.unit_price ?? 0),
     image_url: row.image_url ? String(row.image_url) : undefined,
   };
@@ -197,12 +198,16 @@ export async function postMrnToInventory(
   }
 
   for (const update of mrn.price_updates ?? []) {
-    if (!update.item_id || update.new_unit_price === update.old_unit_price) continue;
-    await db
-      .from("items")
-      .update({ unit_price: update.new_unit_price })
-      .eq("id", update.item_id)
-      .eq("company_id", companyId);
+    if (!update.item_id) continue;
+    const cost = update.new_unit_price;
+    const sale =
+      update.new_sale_price !== undefined && update.new_sale_price > 0
+        ? update.new_sale_price
+        : undefined;
+    const patch: Record<string, number> = { cost_price: cost };
+    if (sale !== undefined) patch.unit_price = sale;
+    else if (cost > 0) patch.unit_price = cost;
+    await db.from("items").update(patch).eq("id", update.item_id).eq("company_id", companyId);
   }
 }
 
@@ -246,6 +251,7 @@ export function itemInsertPayload(input: {
   uom_conversions?: UomConversion[];
   is_batch_managed?: boolean;
   reorder_level?: number;
+  cost_price?: number;
   unit_price?: number;
 }) {
   return {
@@ -258,6 +264,7 @@ export function itemInsertPayload(input: {
     uom_conversions: input.uom_conversions ?? [{ uom: input.base_uom ?? "pcs", factor: 1 }],
     is_batch_managed: Boolean(input.is_batch_managed),
     reorder_level: Number(input.reorder_level ?? 0),
+    cost_price: Number(input.cost_price ?? input.unit_price ?? 0),
     unit_price: Number(input.unit_price ?? 0),
     is_active: true,
   };

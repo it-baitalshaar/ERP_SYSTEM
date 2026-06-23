@@ -20,6 +20,7 @@ export const items: Item[] = [
     ],
     is_batch_managed: true,
     reorder_level: 100,
+    cost_price: 62,
     unit_price: 85,
   },
   {
@@ -32,6 +33,7 @@ export const items: Item[] = [
     uom_conversions: [{ uom: "bag", factor: 1 }, { uom: "pallet", factor: 40 }],
     is_batch_managed: false,
     reorder_level: 500,
+    cost_price: 18,
     unit_price: 22,
   },
   {
@@ -44,6 +46,7 @@ export const items: Item[] = [
     uom_conversions: [{ uom: "ton", factor: 1 }],
     is_batch_managed: false,
     reorder_level: 10,
+    cost_price: 2450,
     unit_price: 2800,
   },
 ];

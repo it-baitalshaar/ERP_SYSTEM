@@ -138,13 +138,14 @@ export function computeThreeWayMatch(input: {
     else if (mrn_qty > lpo_qty + QTY_TOLERANCE) status = "over_received";
     else if (!near(invoice_qty, mrn_qty, QTY_TOLERANCE)) status = "qty_mismatch";
     else if (!near(invoice_unit_price, lpo_unit_price, MONEY_TOLERANCE)) status = "price_mismatch";
+    else if (!near(mrn_unit_price, lpo_unit_price, MONEY_TOLERANCE)) status = "price_mismatch";
 
     const qty_variance = invoice_qty - mrn_qty;
     const price_variance = invoice_unit_price - lpo_unit_price;
 
     if (status !== "matched") {
       issues.push(
-        `${item_name}: ${status.replace(/_/g, " ")} (LPO ${lpo_qty} @ ${lpo_unit_price}, MRN ${mrn_qty}, invoice ${invoice_qty} @ ${invoice_unit_price})`
+        `${item_name}: ${status.replace(/_/g, " ")} (LPO ${lpo_qty} @ ${lpo_unit_price}, MRN received @ ${mrn_unit_price}, invoice ${invoice_qty} @ ${invoice_unit_price})`
       );
     }
 

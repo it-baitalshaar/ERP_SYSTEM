@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
-import { ProcurementListHeader } from "@/components/modules/procurement-shared";
+import { ProcurementListHeader, formatAed } from "@/components/modules/procurement-shared";
 import { SupplierFormDialog } from "@/components/procurement/supplier-form-dialog";
 import { fetchSuppliers } from "@/lib/data/procurement";
 import type { Supplier } from "@/lib/types";
@@ -43,6 +43,11 @@ export default function SuppliersPage() {
     { accessorKey: "phone", header: "Phone" },
     { accessorKey: "payment_terms", header: "Terms" },
     { accessorKey: "credit_days", header: "Credit days" },
+    {
+      accessorKey: "outstanding_balance",
+      header: "Balance due",
+      cell: ({ row }) => formatAed(row.original.outstanding_balance ?? 0),
+    },
     {
       accessorKey: "is_blocked",
       header: "Status",
