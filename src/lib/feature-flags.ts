@@ -10,6 +10,7 @@ export const BUSINESS_LINE_MODULE_FLAGS: Record<BusinessLine, string[]> = {
     "mod_finance",
     "mod_ecommerce",
     "feat_batch_tracking",
+    "feat_below_cost_warning",
   ],
   logistics: ["mod_logistics", "mod_procurement", "mod_inventory", "mod_finance"],
   construction: ["mod_construction", "mod_procurement", "mod_inventory", "mod_finance"],

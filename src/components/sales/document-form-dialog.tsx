@@ -19,7 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  BelowCostLineHint,
+  BelowCostSummaryAlert,
+} from "@/components/sales/below-cost-warning";
 import { documentTotal } from "@/lib/sales/calculations";
+import {
+  BELOW_COST_WARNING_FLAG,
+  findBelowCostLines,
+} from "@/lib/sales/below-cost";
 import { getSalesCatalog } from "@/lib/sales/catalog";
 import {
   createQuotation,
@@ -27,6 +35,7 @@ import {
   createTaxInvoice,
 } from "@/lib/data/sales";
 import type { Customer, Item, LineItem } from "@/lib/types";
+import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
 export type SalesDocumentKind = "quotation" | "order" | "invoice";
@@ -66,6 +75,9 @@ export function DocumentFormDialog({
   customers,
   onCreated,
 }: DocumentFormDialogProps) {
+  const belowCostWarningEnabled = useAppStore((s) =>
+    s.isFeatureEnabled(BELOW_COST_WARNING_FLAG)
+  );
   const [catalog, setCatalog] = useState<Item[]>([]);
   const activeCustomers = useMemo(
     () => customers.filter((c) => !c.is_blocked),
@@ -76,6 +88,7 @@ export function DocumentFormDialog({
   const [validUntil, setValidUntil] = useState("");
   const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
+  const [confirmBelowCostOpen, setConfirmBelowCostOpen] = useState(false);
   const wasOpen = useRef(false);
 
   useEffect(() => {
@@ -90,7 +103,18 @@ export function DocumentFormDialog({
     setCustomerId(customers.find((c) => !c.is_blocked)?.id ?? "");
     setValidUntil("");
     setLines([emptyLine()]);
+    setConfirmBelowCostOpen(false);
   }, [open, customers]);
+
+  const belowCostWarnings = useMemo(() => {
+    if (!belowCostWarningEnabled) return [];
+    return findBelowCostLines(lines, catalog);
+  }, [belowCostWarningEnabled, lines, catalog]);
+
+  const warningByIndex = useMemo(
+    () => new Map(belowCostWarnings.map((w) => [w.index, w])),
+    [belowCostWarnings]
+  );
 
   const total = documentTotal(lines);
 
@@ -116,6 +140,46 @@ export function DocumentFormDialog({
     });
   };
 
+  const submitDocument = async (acknowledgeBelowCost: boolean) => {
+    setSaving(true);
+    const payload = {
+      company_id: companyId,
+      branch_id: branchId,
+      customer_id: customerId,
+      lines,
+      acknowledge_below_cost: acknowledgeBelowCost,
+    };
+
+    let result;
+    if (kind === "quotation") {
+      result = await createQuotation({
+        ...payload,
+        valid_until: validUntil || undefined,
+      });
+    } else if (kind === "order") {
+      result = await createSalesOrder(payload);
+    } else {
+      result = await createTaxInvoice(payload);
+    }
+
+    setSaving(false);
+
+    if (result.code === "below_cost_warning") {
+      setConfirmBelowCostOpen(true);
+      return;
+    }
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(`${kindLabels[kind]} created`);
+    setConfirmBelowCostOpen(false);
+    onCreated();
+    onOpenChange(false);
+  };
+
   const handleSave = async () => {
     if (!customerId) {
       toast.error("Select a customer");
@@ -126,194 +190,213 @@ export function DocumentFormDialog({
       return;
     }
 
-    setSaving(true);
-    let result;
-
-    if (kind === "quotation") {
-      result = await createQuotation({
-        company_id: companyId,
-        branch_id: branchId,
-        customer_id: customerId,
-        valid_until: validUntil || undefined,
-        lines,
-      });
-    } else if (kind === "order") {
-      result = await createSalesOrder({
-        company_id: companyId,
-        branch_id: branchId,
-        customer_id: customerId,
-        lines,
-      });
-    } else {
-      result = await createTaxInvoice({
-        company_id: companyId,
-        branch_id: branchId,
-        customer_id: customerId,
-        lines,
-      });
-    }
-
-    setSaving(false);
-
-    if (result.error) {
-      toast.error(result.error);
+    if (belowCostWarningEnabled && belowCostWarnings.length > 0) {
+      setConfirmBelowCostOpen(true);
       return;
     }
 
-    toast.success(`${kindLabels[kind]} created`);
-    onCreated();
-    onOpenChange(false);
+    await submitDocument(false);
+  };
+
+  const handleConfirmBelowCost = async () => {
+    await submitDocument(true);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>New {kindLabels[kind]}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New {kindLabels[kind]}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Customer</Label>
-              <Select
-                value={customerId || undefined}
-                onValueChange={setCustomerId}
-                disabled={activeCustomers.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeCustomers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {activeCustomers.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Create a customer first before raising a {kindLabels[kind].toLowerCase()}.
-                </p>
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Customer</Label>
+                <Select
+                  value={customerId || undefined}
+                  onValueChange={setCustomerId}
+                  disabled={activeCustomers.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeCustomers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {activeCustomers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Create a customer first before raising a {kindLabels[kind].toLowerCase()}.
+                  </p>
+                )}
+              </div>
+              {kind === "quotation" && (
+                <div className="space-y-2">
+                  <Label htmlFor="valid-until">Valid until</Label>
+                  <Input
+                    id="valid-until"
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                  />
+                </div>
               )}
             </div>
-            {kind === "quotation" && (
-              <div className="space-y-2">
-                <Label htmlFor="valid-until">Valid until</Label>
-                <Input
-                  id="valid-until"
-                  type="date"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
-                />
-              </div>
+
+            {belowCostWarningEnabled && (
+              <BelowCostSummaryAlert warnings={belowCostWarnings} />
             )}
-          </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Line items</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                <Plus className="mr-1 h-3 w-3" />
-                Add line
-              </Button>
-            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Line items</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add line
+                </Button>
+              </div>
 
-            {lines.map((line, index) => (
-              <div key={index} className="grid gap-2 rounded-md border p-3 md:grid-cols-6">
-                <div className="md:col-span-2 space-y-1">
-                  <Label className="text-xs">Product</Label>
-                  <Select
-                    value={line.item_id ? line.item_id : undefined}
-                    onValueChange={(id) => pickCatalogItem(index, id)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick from catalog" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {catalog.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.sku} — {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Or type item name"
-                    value={line.item_name}
-                    onChange={(e) => updateLine(index, { item_name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Qty</Label>
-                  <Input
-                    type="number"
-                    min={0.01}
-                    step="any"
-                    value={line.qty}
-                    onChange={(e) => updateLine(index, { qty: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">UOM</Label>
-                  <Input
-                    value={line.uom}
-                    onChange={(e) => updateLine(index, { uom: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Unit price</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={line.unit_price}
-                    onChange={(e) => updateLine(index, { unit_price: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-xs">Disc %</Label>
+              {lines.map((line, index) => (
+                <div
+                  key={index}
+                  className={`grid gap-2 rounded-md border p-3 md:grid-cols-6 ${
+                    warningByIndex.has(index)
+                      ? "border-amber-400 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/20"
+                      : ""
+                  }`}
+                >
+                  <div className="md:col-span-2 space-y-1">
+                    <Label className="text-xs">Product</Label>
+                    <Select
+                      value={line.item_id ? line.item_id : undefined}
+                      onValueChange={(id) => pickCatalogItem(index, id)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pick from catalog" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {catalog.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.sku} — {item.name}
+                            {(item.cost_price ?? 0) > 0
+                              ? ` (cost ${item.cost_price})`
+                              : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Or type item name"
+                      value={line.item_name}
+                      onChange={(e) => updateLine(index, { item_name: e.target.value })}
+                    />
+                    {belowCostWarningEnabled && (
+                      <BelowCostLineHint warning={warningByIndex.get(index)} />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Qty</Label>
+                    <Input
+                      type="number"
+                      min={0.01}
+                      step="any"
+                      value={line.qty}
+                      onChange={(e) => updateLine(index, { qty: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">UOM</Label>
+                    <Input
+                      value={line.uom}
+                      onChange={(e) => updateLine(index, { uom: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Unit price</Label>
                     <Input
                       type="number"
                       min={0}
-                      max={100}
-                      value={line.discount_pct}
+                      step="any"
+                      value={line.unit_price}
                       onChange={(e) =>
-                        updateLine(index, { discount_pct: Number(e.target.value) })
+                        updateLine(index, { unit_price: Number(e.target.value) })
                       }
                     />
                   </div>
-                  {lines.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLine(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Disc %</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={line.discount_pct}
+                        onChange={(e) =>
+                          updateLine(index, { discount_pct: Number(e.target.value) })
+                        }
+                      />
+                    </div>
+                    {lines.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeLine(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div className="flex justify-end text-sm font-medium">
+              Total (incl. VAT): AED {total.toLocaleString()}
+            </div>
           </div>
 
-          <div className="flex justify-end text-sm font-medium">
-            Total (incl. VAT): AED {total.toLocaleString()}
-          </div>
-        </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleSave()} disabled={saving}>
+              {saving ? "Creating…" : `Create ${kindLabels[kind]}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSave()} disabled={saving}>
-            {saving ? "Creating…" : `Create ${kindLabels[kind]}`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={confirmBelowCostOpen} onOpenChange={setConfirmBelowCostOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selling below purchase cost</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            One or more lines are priced below the item&apos;s purchase (cost) price. This may be
+            unintentional if the selling price was not updated after goods receipt.
+          </p>
+          <BelowCostSummaryAlert warnings={belowCostWarnings} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBelowCostOpen(false)}>
+              Go back and fix prices
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmBelowCost()}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Proceed anyway"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

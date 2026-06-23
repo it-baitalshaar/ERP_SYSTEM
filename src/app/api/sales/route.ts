@@ -16,6 +16,7 @@ import {
   resolveBranchCode,
   salesOrderInsertPayload,
 } from "@/lib/server/sales";
+import { BelowCostError, assertSalesLinesNotBelowCost } from "@/lib/server/below-cost";
 import { postDeliveryNoteToInventory } from "@/lib/server/inventory";
 import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
 import { checkCustomerDelete, deleteCustomer } from "@/lib/server/customer-delete";
@@ -149,6 +150,12 @@ export async function POST(request: Request) {
       await getCustomerOrThrow(db, companyId, customerId);
 
       const lines = normalizeLines((body.lines as LineItem[]) ?? []);
+      await assertSalesLinesNotBelowCost(
+        db,
+        companyId,
+        lines,
+        Boolean(body.acknowledge_below_cost)
+      );
       const branchCode = await resolveBranchCode(db, branchId);
       const number = await nextDocumentNumber(db, "quotations", companyId, branchCode, "QT");
 
@@ -177,6 +184,12 @@ export async function POST(request: Request) {
       await getCustomerOrThrow(db, companyId, customerId);
 
       const lines = normalizeLines((body.lines as LineItem[]) ?? []);
+      await assertSalesLinesNotBelowCost(
+        db,
+        companyId,
+        lines,
+        Boolean(body.acknowledge_below_cost)
+      );
       const branchCode = await resolveBranchCode(db, branchId);
       const number = await nextDocumentNumber(db, "sales_orders", companyId, branchCode, "SO");
 
@@ -205,6 +218,12 @@ export async function POST(request: Request) {
       await getCustomerOrThrow(db, companyId, customerId);
 
       const lines = normalizeLines((body.lines as LineItem[]) ?? []);
+      await assertSalesLinesNotBelowCost(
+        db,
+        companyId,
+        lines,
+        Boolean(body.acknowledge_below_cost)
+      );
       const branchCode = await resolveBranchCode(db, branchId);
       const number = await nextDocumentNumber(db, "tax_invoices", companyId, branchCode, "INV");
 
@@ -229,6 +248,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: "Unknown resource" }, { status: 400 });
   } catch (err) {
+    if (err instanceof BelowCostError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code, warnings: err.warnings },
+        { status: 409 }
+      );
+    }
     const message = err instanceof Error ? err.message : "Create failed";
     const status =
       message === "Unauthorized" ? 401 : message.includes("access") ? 403 : 400;

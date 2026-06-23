@@ -19,6 +19,12 @@ const flagDefs: Omit<FeatureFlag, "company_id" | "enabled">[] = [
   { key: "feat_customer_portal", label: "Customer Portal", description: "External customer self-service", category: "Sales & CRM" },
   { key: "feat_e_invoicing", label: "E-Invoicing (FTA)", description: "UAE FTA e-invoicing integration", category: "Compliance" },
   { key: "feat_batch_tracking", label: "Batch/Lot Tracking", description: "Batch-managed inventory items", category: "Inventory" },
+  {
+    key: "feat_below_cost_warning",
+    label: "Below-cost sale warning",
+    description: "Warn when selling below item purchase (cost) price on quotations, orders, and invoices",
+    category: "Sales & CRM",
+  },
 ];
 
 export function getDefaultFeatureFlags(companyId: string): FeatureFlag[] {

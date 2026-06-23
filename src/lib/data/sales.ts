@@ -6,6 +6,7 @@ import type {
   SalesOrder,
   TaxInvoice,
 } from "@/lib/types";
+import type { BelowCostLineWarning } from "@/lib/sales/below-cost";
 import {
   customers as mockCustomers,
   quotations as mockQuotations,
@@ -16,13 +17,24 @@ import {
 async function salesRequest<T>(
   url: string,
   init?: RequestInit
-): Promise<{ data?: T; error?: string }> {
+): Promise<{ data?: T; error?: string; code?: string; warnings?: BelowCostLineWarning[] }> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  const json = (await res.json()) as { data?: T; error?: string };
-  if (!res.ok) return { error: json.error ?? "Request failed" };
+  const json = (await res.json()) as {
+    data?: T;
+    error?: string;
+    code?: string;
+    warnings?: BelowCostLineWarning[];
+  };
+  if (!res.ok) {
+    return {
+      error: json.error ?? "Request failed",
+      code: json.code,
+      warnings: json.warnings,
+    };
+  }
   return { data: json.data };
 }
 
@@ -93,7 +105,13 @@ export async function createQuotation(input: {
   customer_id: string;
   valid_until?: string;
   lines: LineItem[];
-}): Promise<{ data?: Quotation; error?: string }> {
+  acknowledge_below_cost?: boolean;
+}): Promise<{
+  data?: Quotation;
+  error?: string;
+  code?: string;
+  warnings?: BelowCostLineWarning[];
+}> {
   return salesRequest<Quotation>("/api/sales", {
     method: "POST",
     body: JSON.stringify({ resource: "quotations", ...input }),
@@ -105,7 +123,13 @@ export async function createSalesOrder(input: {
   branch_id: string;
   customer_id: string;
   lines: LineItem[];
-}): Promise<{ data?: SalesOrder; error?: string }> {
+  acknowledge_below_cost?: boolean;
+}): Promise<{
+  data?: SalesOrder;
+  error?: string;
+  code?: string;
+  warnings?: BelowCostLineWarning[];
+}> {
   return salesRequest<SalesOrder>("/api/sales", {
     method: "POST",
     body: JSON.stringify({ resource: "orders", ...input }),
@@ -118,7 +142,13 @@ export async function createTaxInvoice(input: {
   customer_id: string;
   lines: LineItem[];
   sales_order_id?: string;
-}): Promise<{ data?: TaxInvoice; error?: string }> {
+  acknowledge_below_cost?: boolean;
+}): Promise<{
+  data?: TaxInvoice;
+  error?: string;
+  code?: string;
+  warnings?: BelowCostLineWarning[];
+}> {
   return salesRequest<TaxInvoice>("/api/sales", {
     method: "POST",
     body: JSON.stringify({ resource: "invoices", ...input }),
