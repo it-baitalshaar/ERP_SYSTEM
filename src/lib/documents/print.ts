@@ -83,6 +83,43 @@ function buildLegacyPrintHtml(doc: PrintableDocument): string {
 </html>`;
 }
 
+function injectAutoPrintScript(html: string): string {
+  const script = `
+<script>
+(function () {
+  function triggerPrint() {
+    window.focus();
+    setTimeout(function () {
+      window.print();
+    }, 150);
+  }
+  function waitForImages(cb) {
+    var imgs = document.images;
+    if (!imgs.length) { cb(); return; }
+    var pending = imgs.length;
+    function done() {
+      pending -= 1;
+      if (pending <= 0) cb();
+    }
+    for (var i = 0; i < imgs.length; i += 1) {
+      if (imgs[i].complete) done();
+      else {
+        imgs[i].addEventListener("load", done);
+        imgs[i].addEventListener("error", done);
+      }
+    }
+  }
+  if (document.readyState === "complete") {
+    waitForImages(triggerPrint);
+  } else {
+    window.addEventListener("load", function () { waitForImages(triggerPrint); });
+  }
+})();
+</script>`;
+  return html.replace("</body>", `${script}</body>`);
+}
+
+/** Opens the OS print dialog (Windows / macOS) with the rendered document. */
 export function openPrintWindow(
   doc: PrintableDocument,
   ctxOrAutoPrint?: PrintContext | boolean,
@@ -96,18 +133,73 @@ export function openPrintWindow(
     ctx = ctxOrAutoPrint;
   }
 
-  const html = buildPrintHtml(doc, ctx);
-  const win = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
-  if (!win) {
-    throw new Error("Pop-up blocked — allow pop-ups to print this document");
+  let html = buildPrintHtml(doc, ctx);
+  if (shouldPrint) {
+    html = injectAutoPrintScript(html);
   }
+
+  printHtmlInFrame(html, shouldPrint);
+}
+
+function printHtmlInFrame(html: string, autoPrint: boolean): void {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("title", "Print document");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  document.body.appendChild(iframe);
+
+  const frameWin = iframe.contentWindow;
+  const frameDoc = frameWin?.document;
+  if (!frameWin || !frameDoc) {
+    document.body.removeChild(iframe);
+    openPrintPopup(html, autoPrint);
+    return;
+  }
+
+  frameDoc.open();
+  frameDoc.write(html);
+  frameDoc.close();
+
+  const cleanup = () => {
+    if (iframe.parentNode) {
+      iframe.parentNode.removeChild(iframe);
+    }
+  };
+
+  if (!autoPrint) {
+    iframe.style.cssText =
+      "position:fixed;inset:4%;width:92%;height:92%;border:1px solid #ccc;visibility:visible;z-index:99999;background:#fff;";
+    return;
+  }
+
+  const triggerPrint = () => {
+    try {
+      frameWin.focus();
+      frameWin.print();
+    } finally {
+      frameWin.addEventListener("afterprint", cleanup, { once: true });
+      setTimeout(cleanup, 60_000);
+    }
+  };
+
+  if (frameDoc.readyState === "complete") {
+    setTimeout(triggerPrint, 200);
+  } else {
+    iframe.onload = () => setTimeout(triggerPrint, 200);
+  }
+}
+
+/** Fallback when iframe printing is unavailable — must not use noopener (breaks print). */
+function openPrintPopup(html: string, autoPrint: boolean): void {
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) {
+    throw new Error("Pop-up blocked — allow pop-ups to open the print dialog");
+  }
+  win.document.open();
   win.document.write(html);
   win.document.close();
-  if (shouldPrint) {
-    win.onload = () => {
-      win.focus();
-      win.print();
-    };
+  if (autoPrint) {
+    win.focus();
   }
 }
 

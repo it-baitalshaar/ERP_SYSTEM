@@ -105,11 +105,9 @@ Status values: `not-started`, `in-progress`, `done`, `coming-soon-shell`
   scope).
 - `03_AI_INDEX_RULES.md` — this file; tells the AI how to maintain
   `PROGRESS_INDEX.md` going forward.
-- `PROGRESS_INDEX.md` — created by the AI builder on first run inside the
-  generated project repo (not provided here, since the project doesn't
-  exist yet).
-
----
+- `PROGRESS_INDEX.md` — living build status index.
+- `docs/EXTRA_FEATURES.md` — catalog of user-requested extras beyond PRD.
+- `.cursor/rules/*.mdc` — always-on agent rules (structure, docs sync, quality).
 
 ## 5. Supabase Migration Note (for later)
 When Phase 2 starts, create `/supabase/migrations/0001_init.sql` etc.
@@ -125,7 +123,7 @@ format as §2.
 The project must stay **well structured** — no scattered logic, no duplicate
 API routes, no business rules in page components.
 
-**Enforced by:** `.cursor/rules/erp-project-structure.mdc` (always apply in Cursor).
+**Enforced by:** `.cursor/rules/erp-project-structure.mdc`, `erp-code-quality.mdc`, `erp-docs-and-features.mdc` (always apply in Cursor).
 
 | Layer | Location |
 |---|---|
@@ -138,3 +136,23 @@ API routes, no business rules in page components.
 
 When adding a module, mirror the nearest completed one (Sales → Procurement).
 Update §2 and §7 in `PROGRESS_INDEX.md` before ending the session.
+
+---
+
+## 7. Extra features & build docs (mandatory)
+
+Any **user-requested extra**, admin-only capability, or behavior not in `02_PRD.md` must be recorded in:
+
+1. **`docs/EXTRA_FEATURES.md`** — one table row (feature, flag, paths, notes)
+2. **`01_BUILD_PROMPT.md`** — new appendix under §4 (e.g. §4.R, §4.S) with key files
+3. **`PROGRESS_INDEX.md`** — §2, §3 (flags), §6, §7, §8 as applicable
+
+**Cursor rules (always apply in this repo):**
+
+| Rule | Purpose |
+|------|---------|
+| `.cursor/rules/erp-project-structure.mdc` | Layers, naming, migrations |
+| `.cursor/rules/erp-docs-and-features.mdc` | Sync index + friend docs on every feature |
+| `.cursor/rules/erp-code-quality.mdc` | Quality bar, flags, tsc, file size |
+
+Do not ship a feature without updating at least `PROGRESS_INDEX.md` and `docs/EXTRA_FEATURES.md`.

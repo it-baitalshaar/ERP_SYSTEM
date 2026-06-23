@@ -27,17 +27,16 @@ export function DocumentPrintActions({
     try {
       openPrintWindow(document, printContext, true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not open print window");
+      toast.error(err instanceof Error ? err.message : "Could not open print dialog");
     }
   };
 
   const handlePdf = async () => {
     try {
       await downloadPdf(document, printContext);
-      toast.message("Print dialog opened — choose Save as PDF for full template styling");
     } catch (err) {
       const message = err instanceof Error ? err.message : "PDF failed";
-      if (!message.includes("styled templates")) {
+      if (!message.includes("styled templates") && !message.includes("Print dialog")) {
         toast.error(message);
       }
     }

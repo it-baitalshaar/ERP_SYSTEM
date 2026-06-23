@@ -1,0 +1,50 @@
+---
+description: Keep build docs and friend docs in sync when adding features or extras
+alwaysApply: true
+---
+
+# ERP docs & extra-features sync
+
+When you **add, change, or remove** any user-facing feature, admin capability, feature flag, migration, or cross-module behavior, update **all applicable** docs in the same session — do not leave docs stale.
+
+## Friend docs (update what applies)
+
+| Doc | When to update |
+|-----|----------------|
+| `PROGRESS_INDEX.md` | Always — §2 status, §3 flags, §6 gaps, §7 next step, §8 migrations |
+| `docs/EXTRA_FEATURES.md` | User-requested or non-PRD extras (one row per feature) |
+| `01_BUILD_PROMPT.md` | New §4 appendix block (e.g. §4.R, §4.S) with paths + behavior |
+| `03_AI_INDEX_RULES.md` | Only if the maintenance protocol itself changes |
+| `docs/<MODULE>_FLOW.md` | Flow changes (procurement, sales, inventory) |
+| `src/lib/mock-data/feature-flags.ts` | New `feat_*` / `mod_*` flag definitions |
+
+## Minimum PROGRESS_INDEX updates
+
+1. **§2** — module row: status + ≤15 word note  
+2. **§3** — checkbox or bullet if new feature flag  
+3. **§6** — strike done gaps; add new gaps  
+4. **§7** — one actionable next task  
+5. **§8** — new migration filename when schema changes  
+
+## Extra-features entry format (`docs/EXTRA_FEATURES.md`)
+
+```markdown
+| Feature | Flag / setting | Key paths | Added |
+```
+
+Include: admin toggle location, API/server entry points, main UI routes.
+
+## 01_BUILD_PROMPT appendix format
+
+Add under `# 4.X <Title>` at end of build prompt (before closing line):
+
+- **What** (1–2 sentences)  
+- **Admin / flag** (if any)  
+- **Key files** (table of paths)  
+- **Wired on** (which list pages / modules)  
+
+## Do not
+
+- Document only in chat — always persist to files above  
+- Duplicate full PRD text — reference `02_PRD.md` IDs where relevant  
+- Add features without `feat_*` flag when behavior is optional and admin-controlled  

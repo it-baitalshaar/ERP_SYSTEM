@@ -1,0 +1,43 @@
+---
+description: Strict structure and quality bar for all ERP code changes
+alwaysApply: true
+---
+
+# ERP code quality & structure
+
+Follow `.cursor/rules/erp-project-structure.mdc` layers **without exception**. This rule adds the quality bar.
+
+## Structure non-negotiables
+
+- **One API route per module** (`/api/sales`, `/api/procurement`, `/api/inventory`) — extend with `resource` param, never add parallel routes for the same domain  
+- **Business logic in `src/lib/server/`** — never in `page.tsx` or route handlers beyond auth + dispatch  
+- **Shared UI** in `src/components/modules/*-shared.tsx` (columns, headers) — not copy-pasted per page  
+- **Cross-module concerns** in dedicated libs (`src/lib/documents/`, `src/lib/sales/below-cost.ts`, etc.)  
+- **Types** in `src/lib/types/index.ts` until split is justified (>300 lines in types file)  
+
+## Before finishing a task
+
+1. `pnpm exec tsc --noEmit` — fix type errors  
+2. Match naming/style of the nearest completed module (Sales → Procurement → Inventory)  
+3. Wire UI end-to-end: list → dialog → `lib/data` → API → server → migration (if needed)  
+4. Run docs sync per `erp-docs-and-features.mdc`  
+
+## Optional / admin features
+
+- Add `feat_*` in `feature-flags.ts` + admin toggle on Feature Management page  
+- Server must respect flag (do not rely on UI-only hiding)  
+- Per-company settings → migration + `src/app/api/admin/...` + admin page section  
+
+## File size & clarity
+
+- Split files approaching **500 lines**  
+- No duplicate totals/calculations — use `src/lib/sales/calculations.ts`  
+- Comments only for non-obvious business rules (VAT, UAE compliance, approval flows)  
+
+## Cursor rules index
+
+| Rule | Purpose |
+|------|---------|
+| `erp-project-structure.mdc` | Layers, naming, migrations |
+| `erp-docs-and-features.mdc` | PROGRESS_INDEX + build docs sync |
+| `erp-code-quality.mdc` | Quality bar (this file) |

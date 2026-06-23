@@ -55,5 +55,14 @@ Each business module (sales, procurement, inventory) uses:
 ## Session start checklist
 
 1. Read `PROGRESS_INDEX.md`
-2. Read module doc if exists (`docs/PROCUREMENT_FLOW.md`)
-3. Match patterns from the nearest completed module (Sales)
+2. Read `docs/EXTRA_FEATURES.md` if adding user-requested behavior
+3. Read module doc if exists (`docs/PROCUREMENT_FLOW.md`)
+4. Match patterns from the nearest completed module (Sales)
+
+## Cursor rules (always apply)
+
+| File | Purpose |
+|------|---------|
+| `erp-project-structure.mdc` | Layers, naming, migrations |
+| `erp-docs-and-features.mdc` | Sync PROGRESS_INDEX + build docs on every feature |
+| `erp-code-quality.mdc` | Quality bar, flags, tsc, no god files |

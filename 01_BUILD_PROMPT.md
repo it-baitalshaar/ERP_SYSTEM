@@ -774,4 +774,43 @@ Prepare:
 
 ---
 
+# 4.R Extra Features Catalog & Doc Sync
+
+All **user-requested extras** and major post-PRD capabilities are tracked in:
+
+| Doc | Role |
+|-----|------|
+| `docs/EXTRA_FEATURES.md` | Master table — feature, flag, paths |
+| `PROGRESS_INDEX.md` | Status, flags, gaps, migrations |
+| `03_AI_INDEX_RULES.md` §7 | Mandatory update protocol |
+| `.cursor/rules/erp-docs-and-features.mdc` | Cursor agent rule (always apply) |
+
+**When shipping a new extra:** add a row to `EXTRA_FEATURES.md`, append a short §4 subsection here if non-trivial, update `PROGRESS_INDEX.md`, add `feat_*` to `feature-flags.ts` when admin-toggleable.
+
+### Currently catalogued (see `docs/EXTRA_FEATURES.md` for paths)
+
+- Building materials: LPO variance, supplier balance, linked payments, UOM, MRN pricing, stock movements  
+- Document templates: classic LPO + standard quote; Admin → Document Templates  
+- Below-cost sale warning (`feat_below_cost_warning`)  
+- Print → OS print dialog (`printHtmlInFrame`)  
+- 3-way match, admin delete, WhatsApp share  
+
+---
+
+# 4.S Building Materials & Procurement Extras
+
+- **LPO vs MRN price:** Admin approves; LPO lines updated (`mrn-lpo-variance.ts`, `mrn-post-dialog.tsx`).  
+- **Supplier payments:** `/procurement/payments` linked to invoice; `suppliers.outstanding_balance` (`supplier-balance.ts`).  
+- **UOM:** `src/lib/inventory/uom.ts`, item form subunits.  
+- **Inventory from MRN:** `postMrnToInventory` sets `cost_price` + sale `unit_price`.  
+- **Migrations:** `0012_building_materials.sql`, `0013_document_templates.sql`.
+
+---
+
+# 4.T Sales Guardrails
+
+- **Below-cost warning:** `feat_below_cost_warning` in Feature Management; warns when sell price &lt; `items.cost_price` on quotation/order/invoice (`below-cost.ts`, server `assertSalesLinesNotBelowCost`).
+
+---
+
 This keeps your original prompt intact and fills the proposal gaps instead of rewriting architecture.
