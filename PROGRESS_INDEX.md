@@ -4,7 +4,7 @@ Last updated: 2026-06-16 by Cursor Agent
 ## 1. Status Snapshot
 - Phase: 2 — Supabase + Sales + Procurement + Inventory core wired
 - Stack: Next.js 15 + TS + Tailwind + shadcn + Zustand + Supabase
-- Backend: Migrations through `0012_building_materials.sql`
+- Backend: Migrations through `0013_document_templates.sql`
 - Structure: `.cursor/rules/erp-project-structure.mdc` (always apply)
 
 ## 2. Module Build Status
@@ -13,7 +13,7 @@ Last updated: 2026-06-16 by Cursor Agent
 | Inventory (items, stock, movements) | /inventory/* | in-progress | UOM catalog; cost/sale on items; MRN updates stock + pricing |
 | Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Print/PDF on all transactional lists |
 | Procurement (full purchase cycle) | /procurement/* | in-progress | LPO variance approval; linked purchase payments |
-| Document print / PDF | cross-module | done | `src/lib/documents/*`, `createPrintColumn` on lists |
+| Document print / PDF | cross-module | done | Classic LPO + Standard quote templates; admin customization |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
 | User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
 | Auth + platform init | /login, /itbaitalshaar | done | Username or email login |
@@ -65,3 +65,4 @@ Last updated: 2026-06-16 by Cursor Agent
 | 0010_procurement.sql | ready — full purchase chain |
 | 0011_inventory.sql | ready — items, stock_levels, movements, delivery_notes |
 | 0012_building_materials.sql | ready — cost_price, supplier balance, MRN variance flags |
+| 0013_document_templates.sql | ready — per-company print template settings |

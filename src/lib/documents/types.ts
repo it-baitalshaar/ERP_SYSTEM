@@ -1,4 +1,6 @@
 import type { LineItem } from "@/lib/types";
+import { lineSubtotal } from "@/lib/sales/calculations";
+import type { DocumentTemplateSettings } from "@/lib/documents/template-settings";
 
 export interface PrintableLine {
   item_name: string;
@@ -6,6 +8,8 @@ export interface PrintableLine {
   uom: string;
   unit_price: number;
   line_total: number;
+  /** Net after discount, before VAT (standard template Amount column). */
+  net_amount?: number;
 }
 
 export interface PrintableMetaRow {
@@ -34,24 +38,28 @@ export interface PrintableDocument {
   amount?: number;
   currency?: string;
   notes?: string;
+  /** Total line discount (standard template). */
+  discount_amount?: number;
 }
 
 export interface PrintContext {
   companyName: string;
   branchName?: string;
   currency?: string;
+  companyAddress?: string;
+  templateSettings?: DocumentTemplateSettings;
 }
 
 export function linesToPrintable(lines: LineItem[]): PrintableLine[] {
   return lines.map((line) => {
-    const gross = line.qty * line.unit_price;
-    const net = gross * (1 - (line.discount_pct ?? 0) / 100);
+    const net = lineSubtotal(line);
     const withVat = net * (1 + (line.vat_pct ?? 0) / 100);
     return {
       item_name: line.item_name,
       qty: line.qty,
       uom: line.uom,
       unit_price: line.unit_price,
+      net_amount: Math.round(net * 100) / 100,
       line_total: Math.round(withVat * 100) / 100,
     };
   });

@@ -154,7 +154,7 @@ export const navigation: NavGroup[] = [
       { key: "admin-users", label: "User Management", href: "/admin/users", icon: "Users", module_key: "admin" },
       { key: "admin-roles", label: "Roles & Permissions", href: "/admin/roles", icon: "Shield", module_key: "admin" },
       { key: "admin-features", label: "Feature Management", href: "/admin/features", icon: "ToggleLeft", module_key: "admin" },
-      { key: "admin-ui", label: "UI Customization", href: "/admin/ui-customization", icon: "Palette", module_key: "admin" },
+      { key: "admin-ui", label: "Document Templates", href: "/admin/ui-customization", icon: "Palette", module_key: "admin" },
       { key: "admin-sequences", label: "Numbering & Sequences", href: "/admin/sequences", icon: "Hash", module_key: "admin" },
       { key: "admin-tax", label: "Tax & Compliance", href: "/admin/tax-compliance", icon: "Scale", module_key: "admin" },
       { key: "admin-audit", label: "Audit Log Viewer", href: "/admin/audit-log", icon: "ScrollText", module_key: "admin" },

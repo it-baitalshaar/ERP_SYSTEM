@@ -1,5 +1,6 @@
-import type { PrintableDocument } from "@/lib/documents/types";
+import type { PrintableDocument, PrintContext } from "@/lib/documents/types";
 import { formatMoney } from "@/lib/documents/types";
+import { buildTemplateHtml } from "@/lib/documents/templates";
 
 function escapeHtml(text: string): string {
   return text
@@ -9,7 +10,15 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function buildPrintHtml(doc: PrintableDocument): string {
+/** @deprecated Use buildTemplateHtml with PrintContext for styled templates. */
+export function buildPrintHtml(doc: PrintableDocument, ctx?: PrintContext): string {
+  if (ctx) {
+    return buildTemplateHtml({ doc, ctx });
+  }
+  return buildLegacyPrintHtml(doc);
+}
+
+function buildLegacyPrintHtml(doc: PrintableDocument): string {
   const currency = doc.currency ?? "AED";
   const metaRows = (doc.meta ?? [])
     .map((m) => `<tr><td class="label">${escapeHtml(m.label)}</td><td>${escapeHtml(m.value)}</td></tr>`)
@@ -50,71 +59,51 @@ export function buildPrintHtml(doc: PrintableDocument): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; margin: 24px; }
-    h1 { font-size: 20px; margin: 0 0 4px; }
-    .subtitle { color: #555; margin-bottom: 16px; }
     .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #1e3a5f; padding-bottom: 12px; }
     .company { font-weight: bold; font-size: 14px; }
     .doc-no { font-size: 16px; font-weight: bold; text-align: right; }
-    .meta { width: 100%; margin-bottom: 16px; }
-    .meta td { padding: 3px 8px 3px 0; vertical-align: top; }
-    .meta .label { color: #555; width: 140px; }
     table.lines { width: 100%; border-collapse: collapse; margin-top: 8px; }
     table.lines th, table.lines td { border: 1px solid #ccc; padding: 6px 8px; }
     table.lines th { background: #f3f4f6; text-align: left; }
     .num { text-align: right; white-space: nowrap; }
-    table.totals { margin-top: 12px; margin-left: auto; width: 280px; }
-    table.totals td { padding: 4px 8px; }
-    table.totals .grand td { font-weight: bold; font-size: 14px; border-top: 2px solid #111; }
-    .grand-total { font-size: 16px; font-weight: bold; text-align: right; margin-top: 16px; }
-    .notes { margin-top: 16px; color: #444; }
-    .footer { margin-top: 32px; font-size: 10px; color: #888; text-align: center; }
     @media print { body { margin: 12mm; } }
   </style>
 </head>
 <body>
   <div class="header">
-    <div>
-      <div class="company">${escapeHtml(doc.companyName)}</div>
-      ${doc.branchName ? `<div>${escapeHtml(doc.branchName)}</div>` : ""}
-    </div>
+    <div><div class="company">${escapeHtml(doc.companyName)}</div></div>
     <div class="doc-no">
       <div>${escapeHtml(doc.title)}</div>
       <div>${escapeHtml(doc.number)}</div>
-      <div style="font-size:12px;font-weight:normal;color:#555">${escapeHtml(doc.date)}</div>
     </div>
   </div>
-  ${doc.partyName ? `<p><strong>${escapeHtml(doc.partyLabel ?? "Party")}:</strong> ${escapeHtml(doc.partyName)}</p>` : ""}
-  ${doc.status ? `<p><strong>Status:</strong> ${escapeHtml(doc.status.replace(/_/g, " "))}</p>` : ""}
-  ${metaRows ? `<table class="meta">${metaRows}</table>` : ""}
-  ${
-    doc.lines.length
-      ? `<table class="lines">
-    <thead>
-      <tr>
-        <th>#</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Line total</th>
-      </tr>
-    </thead>
-    <tbody>${lineRows}</tbody>
-  </table>`
-      : ""
-  }
+  ${doc.lines.length ? `<table class="lines"><thead><tr><th>#</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Total</th></tr></thead><tbody>${lineRows}</tbody></table>` : ""}
   ${totalsBlock}
-  ${doc.notes ? `<p class="notes"><strong>Notes:</strong> ${escapeHtml(doc.notes)}</p>` : ""}
-  <div class="footer">Bait Al Shaar ERP — ${escapeHtml(doc.title)} — ${escapeHtml(doc.number)}</div>
-  <script>window.onload = function() { /* optional auto-print */ };</script>
 </body>
 </html>`;
 }
 
-export function openPrintWindow(doc: PrintableDocument, autoPrint = true): void {
-  const html = buildPrintHtml(doc);
+export function openPrintWindow(
+  doc: PrintableDocument,
+  ctxOrAutoPrint?: PrintContext | boolean,
+  autoPrint = true
+): void {
+  let ctx: PrintContext | undefined;
+  let shouldPrint = autoPrint;
+  if (typeof ctxOrAutoPrint === "boolean") {
+    shouldPrint = ctxOrAutoPrint;
+  } else if (ctxOrAutoPrint) {
+    ctx = ctxOrAutoPrint;
+  }
+
+  const html = buildPrintHtml(doc, ctx);
   const win = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
   if (!win) {
     throw new Error("Pop-up blocked — allow pop-ups to print this document");
   }
   win.document.write(html);
   win.document.close();
-  if (autoPrint) {
+  if (shouldPrint) {
     win.onload = () => {
       win.focus();
       win.print();
@@ -122,24 +111,18 @@ export function openPrintWindow(doc: PrintableDocument, autoPrint = true): void 
   }
 }
 
-export async function buildPdfDocument(doc: PrintableDocument) {
+export async function buildPdfDocument(doc: PrintableDocument, ctx?: PrintContext) {
+  if (ctx) {
+    throw new Error("Use print with Save as PDF for styled templates");
+  }
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
 
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const currency = doc.currency ?? "AED";
   let y = 14;
-
-  pdf.setFontSize(16);
   pdf.text(doc.companyName, 14, y);
   y += 7;
-  pdf.setFontSize(10);
-  pdf.setTextColor(100);
-  if (doc.branchName) {
-    pdf.text(doc.branchName, 14, y);
-    y += 5;
-  }
-  pdf.setTextColor(0);
   pdf.setFontSize(14);
   pdf.text(doc.title, 140, 14, { align: "right" });
   pdf.setFontSize(11);
@@ -151,14 +134,6 @@ export async function buildPdfDocument(doc: PrintableDocument) {
     pdf.setFontSize(10);
     pdf.text(`${doc.partyLabel ?? "Party"}: ${doc.partyName}`, 14, y);
     y += 6;
-  }
-  if (doc.status) {
-    pdf.text(`Status: ${doc.status.replace(/_/g, " ")}`, 14, y);
-    y += 6;
-  }
-  for (const m of doc.meta ?? []) {
-    pdf.text(`${m.label}: ${m.value}`, 14, y);
-    y += 5;
   }
 
   if (doc.lines.length) {
@@ -178,27 +153,12 @@ export async function buildPdfDocument(doc: PrintableDocument) {
     y = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   }
 
-  pdf.setFontSize(10);
-  if (doc.subtotal !== undefined) {
-    pdf.text(`Subtotal: ${formatMoney(doc.subtotal, currency)}`, 140, y, { align: "right" });
-    y += 5;
-  }
-  if (doc.vat_amount !== undefined) {
-    pdf.text(`VAT: ${formatMoney(doc.vat_amount, currency)}`, 140, y, { align: "right" });
-    y += 5;
-  }
   if (doc.total !== undefined) {
     pdf.setFontSize(12);
     pdf.text(`Total: ${formatMoney(doc.total, currency)}`, 140, y, { align: "right" });
   } else if (doc.amount !== undefined) {
     pdf.setFontSize(12);
     pdf.text(`Amount: ${formatMoney(doc.amount, currency)}`, 140, y, { align: "right" });
-  }
-
-  if (doc.notes) {
-    y += 10;
-    pdf.setFontSize(9);
-    pdf.text(`Notes: ${doc.notes}`, 14, y, { maxWidth: 180 });
   }
 
   return pdf;
@@ -208,7 +168,11 @@ function pdfFilename(doc: PrintableDocument): string {
   return `${doc.number.replace(/[/\\?%*:|"<>]/g, "-")}.pdf`;
 }
 
-export async function generatePdfBlob(doc: PrintableDocument): Promise<Blob> {
+export async function generatePdfBlob(doc: PrintableDocument, ctx?: PrintContext): Promise<Blob> {
+  if (ctx) {
+    openPrintWindow(doc, ctx, true);
+    throw new Error("Use Print dialog → Save as PDF for styled templates");
+  }
   const pdf = await buildPdfDocument(doc);
   return pdf.output("blob");
 }
@@ -222,12 +186,19 @@ export function downloadPdfBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export async function downloadPdf(doc: PrintableDocument): Promise<void> {
+export async function downloadPdf(doc: PrintableDocument, ctx?: PrintContext): Promise<void> {
   try {
+    if (ctx) {
+      openPrintWindow(doc, ctx, true);
+      return;
+    }
     const blob = await generatePdfBlob(doc);
     downloadPdfBlob(blob, pdfFilename(doc));
-  } catch {
-    openPrintWindow(doc, true);
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("styled templates")) {
+      return;
+    }
+    openPrintWindow(doc, ctx, true);
     throw new Error("PDF library not installed — use Print dialog → Save as PDF");
   }
 }

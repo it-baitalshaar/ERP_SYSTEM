@@ -4,18 +4,20 @@ import { useState } from "react";
 import { FileDown, MessageCircle, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentWhatsAppDialog } from "@/components/documents/document-whatsapp-dialog";
-import type { PrintableDocument } from "@/lib/documents/types";
+import type { PrintableDocument, PrintContext } from "@/lib/documents/types";
 import { downloadPdf, openPrintWindow } from "@/lib/documents/print";
 import { toast } from "sonner";
 
 interface DocumentPrintActionsProps {
   document: PrintableDocument;
+  printContext: PrintContext;
   size?: "sm" | "default" | "icon";
   className?: string;
 }
 
 export function DocumentPrintActions({
   document,
+  printContext,
   size = "sm",
   className,
 }: DocumentPrintActionsProps) {
@@ -23,7 +25,7 @@ export function DocumentPrintActions({
 
   const handlePrint = () => {
     try {
-      openPrintWindow(document, true);
+      openPrintWindow(document, printContext, true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not open print window");
     }
@@ -31,13 +33,11 @@ export function DocumentPrintActions({
 
   const handlePdf = async () => {
     try {
-      await downloadPdf(document);
-      toast.success("PDF downloaded");
+      await downloadPdf(document, printContext);
+      toast.message("Print dialog opened — choose Save as PDF for full template styling");
     } catch (err) {
       const message = err instanceof Error ? err.message : "PDF failed";
-      if (message.includes("Save as PDF")) {
-        toast.message("Print dialog opened — choose Save as PDF");
-      } else {
+      if (!message.includes("styled templates")) {
         toast.error(message);
       }
     }

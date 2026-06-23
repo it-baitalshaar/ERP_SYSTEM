@@ -13,7 +13,7 @@ function PrintCell<T>({
   toPrintable: (row: T, ctx: PrintContext) => PrintableDocument;
 }) {
   const ctx = usePrintContext();
-  return <DocumentPrintActions document={toPrintable(row, ctx)} />;
+  return <DocumentPrintActions document={toPrintable(row, ctx)} printContext={ctx} />;
 }
 
 /** Reusable data-table column — Print + PDF on every document row. */

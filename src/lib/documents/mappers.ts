@@ -11,7 +11,7 @@ import type {
   SupplierInvoice,
   TaxInvoice,
 } from "@/lib/types";
-import { documentTotals } from "@/lib/sales/calculations";
+import { documentDiscount, documentTotals } from "@/lib/sales/calculations";
 import type { PrintableDocument, PrintContext } from "@/lib/documents/types";
 import { linesToPrintable } from "@/lib/documents/types";
 
@@ -40,9 +40,9 @@ function base(
 
 export function quotationToPrintable(q: Quotation, ctx: PrintContext): PrintableDocument {
   const totals = documentTotals(q.lines);
-  return base("sales", "quotation", "Quotation", q.number, q.date, ctx, {
+  return base("sales", "quotation", "QUOTE", q.number, q.date, ctx, {
     status: q.status,
-    partyLabel: "Customer",
+    partyLabel: "Bill To",
     partyName: q.customer_name,
     partyPhone: q.customer_phone,
     meta: q.valid_until ? [{ label: "Valid until", value: q.valid_until }] : undefined,
@@ -50,6 +50,7 @@ export function quotationToPrintable(q: Quotation, ctx: PrintContext): Printable
     subtotal: totals.subtotal,
     vat_amount: totals.vat_amount,
     total: totals.total,
+    discount_amount: documentDiscount(q.lines),
   });
 }
 
@@ -68,9 +69,9 @@ export function salesOrderToPrintable(o: SalesOrder, ctx: PrintContext): Printab
 }
 
 export function taxInvoiceToPrintable(inv: TaxInvoice, ctx: PrintContext): PrintableDocument {
-  return base("sales", "tax_invoice", "Tax Invoice", inv.number, inv.date, ctx, {
+  return base("sales", "tax_invoice", "TAX INVOICE", inv.number, inv.date, ctx, {
     status: inv.status,
-    partyLabel: "Customer",
+    partyLabel: "Bill To",
     partyName: inv.customer_name,
     partyPhone: inv.customer_phone,
     meta: [
@@ -118,7 +119,7 @@ export function materialRequestToPrintable(
 
 export function purchaseOrderToPrintable(po: PurchaseOrder, ctx: PrintContext): PrintableDocument {
   const totals = documentTotals(po.lines);
-  return base("procurement", "purchase_order", "Local Purchase Order (LPO)", po.number, po.date, ctx, {
+  return base("procurement", "purchase_order", "LPO", po.number, po.date, ctx, {
     status: po.status,
     partyLabel: "Supplier",
     partyName: po.supplier_name,
@@ -130,6 +131,8 @@ export function purchaseOrderToPrintable(po: PurchaseOrder, ctx: PrintContext): 
         : []),
     ],
     lines: linesToPrintable(po.lines),
+    subtotal: totals.subtotal,
+    vat_amount: totals.vat_amount,
     total: totals.total,
     currency: po.currency,
   });
