@@ -134,8 +134,8 @@ export function TopBar() {
               void setCompany(id);
             }}
           >
-            <SelectTrigger className={contextSelectClass}>
-              <SelectValue placeholder="Shop / Dept" />
+            <SelectTrigger className={contextSelectClass} title="Department or shop filter">
+              <SelectValue placeholder="Dept / Shop" />
             </SelectTrigger>
             <SelectContent align="start">
               {orgCompanies.map((c) => (
@@ -152,7 +152,7 @@ export function TopBar() {
               value={currentSiteKind === "branch" ? currentBranchId : undefined}
               onValueChange={(id) => setBranch(id)}
             >
-              <SelectTrigger className={contextSelectClass}>
+              <SelectTrigger className={contextSelectClass} title="Branch for documents and numbering">
                 <SelectValue placeholder="Branch" />
               </SelectTrigger>
               <SelectContent align="start">

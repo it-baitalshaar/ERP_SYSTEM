@@ -10,15 +10,15 @@ import { AdminDocumentDeleteButton } from "@/components/documents/admin-document
 import { proformaToPrintable } from "@/lib/documents/mappers";
 import { fetchProformaInvoices } from "@/lib/data/procurement";
 import type { ProformaInvoice } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function ProformaInvoicesPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId, branchId } = useDocumentContext();
   const [rows, setRows] = useState<ProformaInvoice[]>([]);
 
   const load = useCallback(async () => {
-    setRows(await fetchProformaInvoices(currentCompanyId));
-  }, [currentCompanyId]);
+    setRows(await fetchProformaInvoices(companyId, branchId));
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -35,7 +35,7 @@ export default function ProformaInvoicesPage() {
           module="procurement"
           resource="proforma_invoices"
           documentId={row.original.id}
-          companyId={currentCompanyId}
+          companyId={companyId}
           onDeleted={() => void load()}
         />
       ),

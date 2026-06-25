@@ -14,10 +14,10 @@ import { MrnToInvoiceDialog } from "@/components/procurement/mrn-to-invoice-dial
 import { MrnPostDialog } from "@/components/procurement/mrn-post-dialog";
 import { fetchMaterialReceiptNotes, fetchPurchaseOrders } from "@/lib/data/procurement";
 import type { LineItem, MaterialReceiptNote, PurchaseOrder } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function MaterialReceiptNotesPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [rows, setRows] = useState<MaterialReceiptNote[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [postOpen, setPostOpen] = useState(false);
@@ -26,12 +26,12 @@ export default function MaterialReceiptNotesPage() {
 
   const load = useCallback(async () => {
     const [mrns, orders] = await Promise.all([
-      fetchMaterialReceiptNotes(currentCompanyId),
-      fetchPurchaseOrders(currentCompanyId),
+      fetchMaterialReceiptNotes(companyId, branchId),
+      fetchPurchaseOrders(companyId, branchId),
     ]);
     setRows(mrns);
     setPurchaseOrders(orders);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -70,7 +70,7 @@ export default function MaterialReceiptNotesPage() {
                 module="procurement"
                 resource="material_receipt_notes"
                 documentId={mrn.id}
-                companyId={currentCompanyId}
+                companyId={companyId}
                 onDeleted={() => void load()}
               />
             </div>
@@ -92,7 +92,7 @@ export default function MaterialReceiptNotesPage() {
               module="procurement"
               resource="material_receipt_notes"
               documentId={mrn.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -116,7 +116,7 @@ export default function MaterialReceiptNotesPage() {
       <MrnPostDialog
         open={postOpen}
         onOpenChange={setPostOpen}
-        companyId={currentCompanyId}
+        companyId={companyId}
         mrn={selectedMrn}
         lpoLines={selectedLpoLines}
         onPosted={() => void load()}
@@ -125,8 +125,8 @@ export default function MaterialReceiptNotesPage() {
       <MrnToInvoiceDialog
         open={invoiceOpen}
         onOpenChange={setInvoiceOpen}
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         mrn={selectedMrn}
         onCreated={() => void load()}
       />

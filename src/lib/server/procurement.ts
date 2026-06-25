@@ -27,7 +27,8 @@ export { assertCompanyAccess, normalizeLines, resolveBranchCode };
 type Db = NonNullable<ReturnType<typeof createAdminClientOrNull>>;
 
 /** Disambiguate profiles join — table has requested_by + approved_by FKs to profiles. */
-export const MATERIAL_REQUEST_SELECT = "*, profiles!requested_by(full_name)";
+export const MATERIAL_REQUEST_SELECT =
+  "*, requester:profiles!material_requests_requested_by_fkey(full_name)";
 
 type NumberedTable =
   | "material_requests"
@@ -114,7 +115,7 @@ export function mapMaterialRequest(row: Record<string, unknown>): MaterialReques
     number: String(row.number),
     date: String(row.date),
     requested_by: String(row.requested_by ?? ""),
-    requester_name: (row.profiles as { full_name?: string } | null)?.full_name,
+    requester_name: (row.requester as { full_name?: string } | null)?.full_name,
     warehouse_id: row.warehouse_id ? String(row.warehouse_id) : undefined,
     status: row.status as DocumentStatus,
     lines: (row.lines as LineItem[]) ?? [],

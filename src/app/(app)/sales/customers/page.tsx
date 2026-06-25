@@ -12,10 +12,10 @@ import { AdminCustomerDeleteButton } from "@/components/sales/admin-customer-del
 import { SalesListHeader, formatAed } from "@/components/modules/sales-shared";
 import type { Customer } from "@/lib/types";
 import { fetchCustomers } from "@/lib/data/sales";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function CustomersPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId } = useDocumentContext();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,10 +23,10 @@ export default function CustomersPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchCustomers(currentCompanyId);
+    const data = await fetchCustomers(companyId);
     setCustomers(data);
     setLoading(false);
-  }, [currentCompanyId]);
+  }, [companyId]);
 
   useEffect(() => {
     void load();
@@ -82,7 +82,7 @@ export default function CustomersPage() {
           </Button>
           <AdminCustomerDeleteButton
             customerId={row.original.id}
-            companyId={currentCompanyId}
+            companyId={companyId}
             onDeleted={() => void load()}
           />
         </div>
@@ -123,7 +123,7 @@ export default function CustomersPage() {
       <CustomerFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        companyId={currentCompanyId}
+        companyId={companyId}
         customer={editing}
         onSaved={() => void load()}
       />

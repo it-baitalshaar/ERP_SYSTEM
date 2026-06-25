@@ -17,6 +17,7 @@ Living catalog of capabilities added during build that extend or specialize the 
 | Stock movements list | — | `/inventory/movements`, `api/inventory` `stock_movements` | Audit trail |
 | Document templates (LPO + quote) | Admin → Document Templates | `src/lib/documents/templates/*`, `0013_document_templates.sql` | Logo, doc naming, classic vs standard |
 | Below-cost sale warning | `feat_below_cost_warning` | `src/lib/sales/below-cost.ts`, Feature Management | Warn if sell < `cost_price` |
+| Product warehouse availability | `feat_product_warehouse_availability` | `src/lib/sales/warehouse-availability.ts`, `product-warehouse-availability.tsx`, sales document form | Inline + details popup per warehouse |
 | Windows print dialog | — | `src/lib/documents/print.ts` `printHtmlInFrame` | iframe + `window.print()` |
 | Per-user module grants | — | `0009_user_module_permissions.sql`, `/admin/users` | Extra modules beyond role |
 

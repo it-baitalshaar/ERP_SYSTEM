@@ -27,10 +27,12 @@ import {
 } from "@/lib/data/procurement";
 import type { PurchaseOrder, Supplier } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function PurchaseOrdersPage() {
-  const { currentCompanyId, currentBranchId, currentWarehouseId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
+  const currentWarehouseId = useAppStore((s) => s.currentWarehouseId);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -38,12 +40,12 @@ export default function PurchaseOrdersPage() {
 
   const load = useCallback(async () => {
     const [o, s] = await Promise.all([
-      fetchPurchaseOrders(currentCompanyId),
-      fetchSuppliers(currentCompanyId),
+      fetchPurchaseOrders(companyId, branchId),
+      fetchSuppliers(companyId),
     ]);
     setOrders(o);
     setSuppliers(s);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -56,7 +58,7 @@ export default function PurchaseOrdersPage() {
     extra?: Record<string, unknown>
   ) => {
     setActing(id);
-    const result = await procurementAction("purchase_orders", currentCompanyId, id, action, extra);
+    const result = await procurementAction("purchase_orders", companyId, id, action, extra);
     setActing(null);
     if (result.error) {
       toast.error(result.error);
@@ -139,7 +141,7 @@ export default function PurchaseOrdersPage() {
               module="procurement"
               resource="purchase_orders"
               documentId={po.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -170,8 +172,8 @@ export default function PurchaseOrdersPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         kind="lpo"
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         suppliers={suppliers}
         onCreated={() => void load()}
       />

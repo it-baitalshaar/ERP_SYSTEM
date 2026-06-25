@@ -28,9 +28,12 @@ async function procurementRequest<T>(
 
 async function fetchProcurementResource<T>(
   companyId: string,
-  resource: string
+  resource: string,
+  branchId?: string
 ): Promise<T[]> {
-  const res = await fetch(`/api/procurement?companyId=${companyId}&resource=${resource}`);
+  const params = new URLSearchParams({ companyId, resource });
+  if (branchId) params.set("branchId", branchId);
+  const res = await fetch(`/api/procurement?${params.toString()}`);
   if (!res.ok) return [];
   const json = (await res.json()) as { data?: T[] };
   return json.data ?? [];
@@ -40,36 +43,81 @@ export async function fetchSuppliers(companyId: string): Promise<Supplier[]> {
   return fetchProcurementResource<Supplier>(companyId, "suppliers");
 }
 
-export async function fetchMaterialRequests(companyId: string): Promise<MaterialRequest[]> {
-  return fetchProcurementResource<MaterialRequest>(companyId, "material_requests");
+export async function fetchMaterialRequests(
+  companyId: string,
+  branchId?: string
+): Promise<MaterialRequest[]> {
+  return fetchProcurementResource<MaterialRequest>(
+    companyId,
+    "material_requests",
+    branchId
+  );
 }
 
-export async function fetchPurchaseOrders(companyId: string): Promise<PurchaseOrder[]> {
-  return fetchProcurementResource<PurchaseOrder>(companyId, "purchase_orders");
+export async function fetchPurchaseOrders(
+  companyId: string,
+  branchId?: string
+): Promise<PurchaseOrder[]> {
+  return fetchProcurementResource<PurchaseOrder>(
+    companyId,
+    "purchase_orders",
+    branchId
+  );
 }
 
-export async function fetchProformaInvoices(companyId: string): Promise<ProformaInvoice[]> {
-  return fetchProcurementResource<ProformaInvoice>(companyId, "proforma_invoices");
+export async function fetchProformaInvoices(
+  companyId: string,
+  branchId?: string
+): Promise<ProformaInvoice[]> {
+  return fetchProcurementResource<ProformaInvoice>(
+    companyId,
+    "proforma_invoices",
+    branchId
+  );
 }
 
 export async function fetchSupplierDeliveryNotes(
-  companyId: string
+  companyId: string,
+  branchId?: string
 ): Promise<SupplierDeliveryNote[]> {
-  return fetchProcurementResource<SupplierDeliveryNote>(companyId, "supplier_delivery_notes");
+  return fetchProcurementResource<SupplierDeliveryNote>(
+    companyId,
+    "supplier_delivery_notes",
+    branchId
+  );
 }
 
 export async function fetchMaterialReceiptNotes(
-  companyId: string
+  companyId: string,
+  branchId?: string
 ): Promise<MaterialReceiptNote[]> {
-  return fetchProcurementResource<MaterialReceiptNote>(companyId, "material_receipt_notes");
+  return fetchProcurementResource<MaterialReceiptNote>(
+    companyId,
+    "material_receipt_notes",
+    branchId
+  );
 }
 
-export async function fetchSupplierInvoices(companyId: string): Promise<SupplierInvoice[]> {
-  return fetchProcurementResource<SupplierInvoice>(companyId, "supplier_invoices");
+export async function fetchSupplierInvoices(
+  companyId: string,
+  branchId?: string
+): Promise<SupplierInvoice[]> {
+  return fetchProcurementResource<SupplierInvoice>(
+    companyId,
+    "supplier_invoices",
+    branchId
+  );
 }
 
-export async function fetchPurchasePayments(companyId: string): Promise<PurchasePayment[]> {
-  return fetchProcurementResource<PurchasePayment>(companyId, "purchase_payments");
+export async function fetchPurchasePayments(
+  companyId: string,
+  branchId?: string
+): Promise<PurchasePayment[]> {
+  return fetchProcurementResource<PurchasePayment>(
+    companyId,
+    "purchase_payments",
+    branchId
+  );
 }
 
 export async function createSupplier(

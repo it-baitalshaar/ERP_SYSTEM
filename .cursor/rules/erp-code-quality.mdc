@@ -24,9 +24,19 @@ Follow `.cursor/rules/erp-project-structure.mdc` layers **without exception**. T
 
 ## Optional / admin features
 
-- Add `feat_*` in `feature-flags.ts` + admin toggle on Feature Management page  
-- Server must respect flag (do not rely on UI-only hiding)  
-- Per-company settings → migration + `src/app/api/admin/...` + admin page section  
+- **Every new user-facing capability** must ship with a `feat_*` flag — see checklist below
+- Add `feat_*` in `feature-flags.ts` + `featureFlagDefs` + admin toggle on Feature Management (`/admin/features`)
+- Server must respect flag via `isCompanyFeatureEnabled` when API behavior changes (do not rely on UI-only hiding)
+- Per-company settings → migration + `src/app/api/admin/...` + admin page section
+
+### New feature checklist (mandatory)
+
+1. `src/lib/mock-data/feature-flags.ts` — `key`, `label`, `description`, `category`
+2. `src/lib/feature-flags.ts` — add to `BUSINESS_LINE_MODULE_FLAGS` (on by default) or `OPTIONAL_FEATURE_FLAGS` (off by default)
+3. Export flag constant from domain lib (e.g. `PRODUCT_WAREHOUSE_AVAILABILITY_FLAG` in `lib/sales/`)
+4. UI: `useAppStore((s) => s.isFeatureEnabled(FLAG))` before showing behavior
+5. Server (if API changes): `isCompanyFeatureEnabled(db, companyId, FLAG)` in `lib/server/`
+6. Docs: `PROGRESS_INDEX.md` §3, `docs/EXTRA_FEATURES.md`, `01_BUILD_PROMPT.md` appendix
 
 ## File size & clarity
 
@@ -39,5 +49,7 @@ Follow `.cursor/rules/erp-project-structure.mdc` layers **without exception**. T
 | Rule | Purpose |
 |------|---------|
 | `erp-project-structure.mdc` | Layers, naming, migrations |
+| `erp-document-context.mdc` | Company/branch scoping for documents |
+| `erp-optimization.mdc` | Optimization checklist before finishing |
 | `erp-docs-and-features.mdc` | PROGRESS_INDEX + build docs sync |
 | `erp-code-quality.mdc` | Quality bar (this file) |

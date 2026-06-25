@@ -13,11 +13,11 @@ import { salesOrderToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, salesOrderColumns } from "@/components/modules/sales-shared";
 import { fetchCustomers, fetchSalesOrders, salesAction } from "@/lib/data/sales";
 import type { Customer, SalesOrder } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function SalesOrdersPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -25,12 +25,12 @@ export default function SalesOrdersPage() {
 
   const load = useCallback(async () => {
     const [o, c] = await Promise.all([
-      fetchSalesOrders(currentCompanyId),
-      fetchCustomers(currentCompanyId),
+      fetchSalesOrders(companyId, branchId),
+      fetchCustomers(companyId),
     ]);
     setOrders(o);
     setCustomers(c);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -38,7 +38,7 @@ export default function SalesOrdersPage() {
 
   const runAction = async (id: string, action: string, success: string) => {
     setActing(id);
-    const result = await salesAction<SalesOrder>("orders", currentCompanyId, id, action);
+    const result = await salesAction<SalesOrder>("orders", companyId, id, action);
     setActing(null);
     if (result.error) {
       toast.error(result.error);
@@ -95,7 +95,7 @@ export default function SalesOrdersPage() {
               module="sales"
               resource="orders"
               documentId={order.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -126,8 +126,8 @@ export default function SalesOrdersPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         kind="order"
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         customers={customers}
         onCreated={() => void load()}
       />

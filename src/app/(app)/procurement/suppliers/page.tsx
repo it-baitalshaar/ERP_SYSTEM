@@ -11,10 +11,10 @@ import { ProcurementListHeader, formatAed } from "@/components/modules/procureme
 import { SupplierFormDialog } from "@/components/procurement/supplier-form-dialog";
 import { fetchSuppliers } from "@/lib/data/procurement";
 import type { Supplier } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function SuppliersPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId } = useDocumentContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -22,10 +22,10 @@ export default function SuppliersPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchSuppliers(currentCompanyId);
+    const data = await fetchSuppliers(companyId);
     setSuppliers(data);
     setLoading(false);
-  }, [currentCompanyId]);
+  }, [companyId]);
 
   useEffect(() => {
     void load();
@@ -112,7 +112,7 @@ export default function SuppliersPage() {
       <SupplierFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        companyId={currentCompanyId}
+        companyId={companyId}
         supplier={editing}
         onSaved={() => void load()}
       />

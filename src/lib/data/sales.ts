@@ -40,9 +40,12 @@ async function salesRequest<T>(
 
 async function fetchSalesResource<T>(
   companyId: string,
-  resource: string
+  resource: string,
+  branchId?: string
 ): Promise<{ data: T[]; fromApi: boolean }> {
-  const res = await fetch(`/api/sales?companyId=${companyId}&resource=${resource}`);
+  const params = new URLSearchParams({ companyId, resource });
+  if (branchId) params.set("branchId", branchId);
+  const res = await fetch(`/api/sales?${params.toString()}`);
   if (!res.ok) return { data: [], fromApi: false };
   const json = (await res.json()) as { data?: T[] };
   return { data: json.data ?? [], fromApi: true };
@@ -54,28 +57,65 @@ export async function fetchCustomers(companyId: string): Promise<Customer[]> {
   return mockCustomers.filter((c) => c.company_id === companyId);
 }
 
-export async function fetchQuotations(companyId: string): Promise<Quotation[]> {
-  const { data, fromApi } = await fetchSalesResource<Quotation>(companyId, "quotations");
+export async function fetchQuotations(
+  companyId: string,
+  branchId?: string
+): Promise<Quotation[]> {
+  const { data, fromApi } = await fetchSalesResource<Quotation>(
+    companyId,
+    "quotations",
+    branchId
+  );
   if (fromApi) return data;
-  return mockQuotations.filter((q) => q.company_id === companyId);
+  return mockQuotations.filter(
+    (q) =>
+      q.company_id === companyId && (!branchId || q.branch_id === branchId)
+  );
 }
 
-export async function fetchSalesOrders(companyId: string): Promise<SalesOrder[]> {
-  const { data, fromApi } = await fetchSalesResource<SalesOrder>(companyId, "orders");
+export async function fetchSalesOrders(
+  companyId: string,
+  branchId?: string
+): Promise<SalesOrder[]> {
+  const { data, fromApi } = await fetchSalesResource<SalesOrder>(
+    companyId,
+    "orders",
+    branchId
+  );
   if (fromApi) return data;
-  return mockOrders.filter((o) => o.company_id === companyId);
+  return mockOrders.filter(
+    (o) =>
+      o.company_id === companyId && (!branchId || o.branch_id === branchId)
+  );
 }
 
-export async function fetchDeliveryNotes(companyId: string): Promise<DeliveryNote[]> {
-  const { data, fromApi } = await fetchSalesResource<DeliveryNote>(companyId, "delivery_notes");
+export async function fetchDeliveryNotes(
+  companyId: string,
+  branchId?: string
+): Promise<DeliveryNote[]> {
+  const { data, fromApi } = await fetchSalesResource<DeliveryNote>(
+    companyId,
+    "delivery_notes",
+    branchId
+  );
   if (fromApi) return data;
   return [];
 }
 
-export async function fetchTaxInvoices(companyId: string): Promise<TaxInvoice[]> {
-  const { data, fromApi } = await fetchSalesResource<TaxInvoice>(companyId, "invoices");
+export async function fetchTaxInvoices(
+  companyId: string,
+  branchId?: string
+): Promise<TaxInvoice[]> {
+  const { data, fromApi } = await fetchSalesResource<TaxInvoice>(
+    companyId,
+    "invoices",
+    branchId
+  );
   if (fromApi) return data;
-  return mockInvoices.filter((i) => i.company_id === companyId);
+  return mockInvoices.filter(
+    (i) =>
+      i.company_id === companyId && (!branchId || i.branch_id === branchId)
+  );
 }
 
 export async function createCustomer(

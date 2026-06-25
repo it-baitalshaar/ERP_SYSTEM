@@ -30,11 +30,11 @@ import {
 } from "@/lib/data/procurement";
 import type { ThreeWayMatchResult } from "@/lib/procurement/three-way-match";
 import type { Supplier, SupplierInvoice } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function SupplierInvoicesPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,12 +46,12 @@ export default function SupplierInvoicesPage() {
 
   const load = useCallback(async () => {
     const [i, s] = await Promise.all([
-      fetchSupplierInvoices(currentCompanyId),
-      fetchSuppliers(currentCompanyId),
+      fetchSupplierInvoices(companyId, branchId),
+      fetchSuppliers(companyId),
     ]);
     setInvoices(i);
     setSuppliers(s);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -61,7 +61,7 @@ export default function SupplierInvoicesPage() {
     setActing(id);
     const result = await procurementAction<SupplierInvoice>(
       "supplier_invoices",
-      currentCompanyId,
+      companyId,
       id,
       action
     );
@@ -82,7 +82,7 @@ export default function SupplierInvoicesPage() {
     setSelectedInvoice(inv);
     setMatchData(null);
     setMatchOpen(true);
-    const result = await fetchThreeWayMatch(currentCompanyId, { supplierInvoiceId: inv.id });
+    const result = await fetchThreeWayMatch(companyId, { supplierInvoiceId: inv.id });
     if (result.error) {
       toast.error(result.error);
       setMatchOpen(false);
@@ -137,7 +137,7 @@ export default function SupplierInvoicesPage() {
               module="procurement"
               resource="supplier_invoices"
               documentId={inv.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -167,8 +167,8 @@ export default function SupplierInvoicesPage() {
       <SupplierInvoiceFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         suppliers={suppliers}
         onCreated={() => void load()}
       />
@@ -176,7 +176,7 @@ export default function SupplierInvoicesPage() {
       <SupplierInvoicePostDialog
         open={postOpen}
         onOpenChange={setPostOpen}
-        companyId={currentCompanyId}
+        companyId={companyId}
         invoice={selectedInvoice}
         onPosted={() => void load()}
       />

@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import type { PrintContext } from "@/lib/documents/types";
+import { DEFAULT_DOCUMENT_TEMPLATE_SETTINGS } from "@/lib/documents/template-settings";
 import { fetchDocumentTemplateSettings } from "@/lib/data/document-templates";
 import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export function usePrintContext(): PrintContext {
-  const company = useAppStore((s) => s.getCurrentCompany());
-  const branch = useAppStore((s) => s.getCurrentBranch());
-  const companyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId, branchId } = useDocumentContext();
+  const companies = useAppStore((s) => s.companies);
+  const branches = useAppStore((s) => s.branches);
+  const company = companies.find((c) => c.id === companyId);
+  const branch = branches.find((b) => b.id === branchId);
   const [templateSettings, setTemplateSettings] = useState<PrintContext["templateSettings"]>();
 
   useEffect(() => {
@@ -29,14 +33,7 @@ export function usePrintContext(): PrintContext {
     templateSettings: templateSettings ?? {
       company_id: companyId,
       logo_url: company?.logo_url,
-      procurement_template: "classic_lpo",
-      sales_template: "standard",
-      doc_titles: {},
-      show_amount_in_words: true,
-      show_vat_breakdown: true,
-      signature_left_label: "Prepared by",
-      signature_right_label: "Approved by",
-      accent_color: "#1e293b",
+      ...DEFAULT_DOCUMENT_TEMPLATE_SETTINGS,
     },
   };
 }

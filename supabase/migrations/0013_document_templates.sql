@@ -1,5 +1,13 @@
 -- Per-company document print/PDF template settings (LPO classic, standard quote/invoice)
 
+do $$ begin
+  create type public.document_template_style as enum ('classic_lpo', 'standard');
+exception when duplicate_object then null;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Company document template settings (one row per shop company)
+-- ---------------------------------------------------------------------------
 create table if not exists public.company_document_settings (
   company_id uuid primary key references public.companies(id) on delete cascade,
   logo_url text,
@@ -7,10 +15,8 @@ create table if not exists public.company_document_settings (
   phone text,
   email text,
   footer_phone text,
-  procurement_template text not null default 'classic_lpo'
-    check (procurement_template in ('classic_lpo', 'standard')),
-  sales_template text not null default 'standard'
-    check (sales_template in ('classic_lpo', 'standard')),
+  procurement_template public.document_template_style not null default 'classic_lpo',
+  sales_template public.document_template_style not null default 'standard',
   doc_titles jsonb not null default '{}'::jsonb,
   show_amount_in_words boolean not null default true,
   show_vat_breakdown boolean not null default true,
@@ -22,7 +28,10 @@ create table if not exists public.company_document_settings (
   updated_at timestamptz not null default now()
 );
 
-comment on table public.company_document_settings is 'Admin-customizable print templates: logo, doc naming, LPO/quote layout';
+comment on table public.company_document_settings is
+  'Admin-customizable print templates: logo, doc naming, LPO/quote layout';
+comment on column public.company_document_settings.doc_titles is
+  'Partial map of docType key → custom header title (see DocumentTitleKey in app)';
 
 drop trigger if exists company_document_settings_updated_at on public.company_document_settings;
 create trigger company_document_settings_updated_at

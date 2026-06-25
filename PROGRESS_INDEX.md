@@ -12,7 +12,7 @@ Last updated: 2026-06-16 by Cursor Agent
 | Module | Route | Status | Notes |
 |---|---|---|---|
 | Inventory (items, stock, movements) | /inventory/* | in-progress | UOM catalog; cost/sale on items; MRN updates stock + pricing |
-| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Below-cost warning flag; print/PDF on lists |
+| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Below-cost warning; warehouse availability on product pick |
 | Procurement (full purchase cycle) | /procurement/* | in-progress | LPO variance; linked purchase payments |
 | Document print / PDF | cross-module | done | Templates + Windows print dialog |
 | Admin document templates | /admin/ui-customization | done | Logo, LPO/quote layout, doc naming |
@@ -28,6 +28,7 @@ Last updated: 2026-06-16 by Cursor Agent
 - [x] Sidebar: flags + role permissions + `user_module_permissions`
 - [x] Super Admin: full nav, all flags treated enabled
 - [x] `feat_below_cost_warning` — below purchase cost on sales docs
+- [x] `feat_product_warehouse_availability` — warehouse stock on sales product pick
 - [x] `feat_batch_tracking`, `feat_customer_portal`, `feat_e_invoicing` (defs in mock-data)
 
 ## 4. RBAC Implemented

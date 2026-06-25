@@ -17,11 +17,11 @@ import { quotationToPrintable } from "@/lib/documents/mappers";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fetchCustomers, fetchQuotations, salesAction } from "@/lib/data/sales";
 import type { Customer, Quotation } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function QuotationsPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -29,12 +29,12 @@ export default function QuotationsPage() {
 
   const load = useCallback(async () => {
     const [q, c] = await Promise.all([
-      fetchQuotations(currentCompanyId),
-      fetchCustomers(currentCompanyId),
+      fetchQuotations(companyId, branchId),
+      fetchCustomers(companyId),
     ]);
     setQuotations(q);
     setCustomers(c);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -44,7 +44,7 @@ export default function QuotationsPage() {
     setActing(id);
     const result = await salesAction<Quotation>(
       "quotations",
-      currentCompanyId,
+      companyId,
       id,
       action
     );
@@ -109,7 +109,7 @@ export default function QuotationsPage() {
               module="sales"
               resource="quotations"
               documentId={q.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -140,8 +140,8 @@ export default function QuotationsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         kind="quotation"
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         customers={customers}
         onCreated={() => void load()}
       />

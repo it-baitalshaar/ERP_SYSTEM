@@ -25,6 +25,12 @@ const flagDefs: Omit<FeatureFlag, "company_id" | "enabled">[] = [
     description: "Warn when selling below item purchase (cost) price on quotations, orders, and invoices",
     category: "Sales & CRM",
   },
+  {
+    key: "feat_product_warehouse_availability",
+    label: "Product warehouse availability",
+    description: "Show which warehouses have stock when picking a product on sales documents",
+    category: "Sales & CRM",
+  },
 ];
 
 export function getDefaultFeatureFlags(companyId: string): FeatureFlag[] {

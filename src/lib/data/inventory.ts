@@ -1,5 +1,9 @@
 import type { Item, StockLevelRow, StockMovementRow } from "@/lib/types";
-import { items as mockItems } from "@/lib/mock-data/inventory";
+import {
+  items as mockItems,
+  stockLevels as mockStockLevels,
+  warehouses as mockWarehouses,
+} from "@/lib/mock-data/inventory";
 
 async function inventoryRequest<T>(
   url: string,
@@ -36,7 +40,29 @@ export async function fetchStockLevels(companyId: string): Promise<StockLevelRow
     "stock_levels"
   );
   if (fromApi) return data;
-  return [];
+
+  const warehouseById = new Map(mockWarehouses.map((w) => [w.id, w]));
+  const itemById = new Map(mockItems.filter((i) => i.company_id === companyId).map((i) => [i.id, i]));
+
+  return mockStockLevels
+    .filter((s) => itemById.has(s.item_id))
+    .map((s, index) => {
+      const item = itemById.get(s.item_id)!;
+      const wh = warehouseById.get(s.warehouse_id);
+      return {
+        id: `mock-stock-${index}`,
+        company_id: companyId,
+        item_id: s.item_id,
+        warehouse_id: s.warehouse_id,
+        qty_on_hand: s.qty_on_hand,
+        qty_reserved: s.qty_reserved,
+        reorder_level: s.reorder_level,
+        item_name: item.name,
+        item_sku: item.sku,
+        warehouse_name: wh?.name ?? "Warehouse",
+        warehouse_code: wh?.code ?? "WH",
+      };
+    });
 }
 
 export async function fetchStockMovements(companyId: string): Promise<StockMovementRow[]> {

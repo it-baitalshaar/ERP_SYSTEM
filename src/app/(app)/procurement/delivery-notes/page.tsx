@@ -13,15 +13,15 @@ import { AdminDocumentDeleteButton } from "@/components/documents/admin-document
 import { supplierDeliveryNoteToPrintable } from "@/lib/documents/mappers";
 import { fetchSupplierDeliveryNotes } from "@/lib/data/procurement";
 import type { SupplierDeliveryNote } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function SupplierDeliveryNotesPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId, branchId } = useDocumentContext();
   const [rows, setRows] = useState<SupplierDeliveryNote[]>([]);
 
   const load = useCallback(async () => {
-    setRows(await fetchSupplierDeliveryNotes(currentCompanyId));
-  }, [currentCompanyId]);
+    setRows(await fetchSupplierDeliveryNotes(companyId, branchId));
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -38,7 +38,7 @@ export default function SupplierDeliveryNotesPage() {
           module="procurement"
           resource="supplier_delivery_notes"
           documentId={row.original.id}
-          companyId={currentCompanyId}
+          companyId={companyId}
           onDeleted={() => void load()}
         />
       ),

@@ -64,5 +64,7 @@ Each business module (sales, procurement, inventory) uses:
 | File | Purpose |
 |------|---------|
 | `erp-project-structure.mdc` | Layers, naming, migrations |
+| `erp-document-context.mdc` | Document company/branch scoping |
+| `erp-optimization.mdc` | DRY, performance, zero-error checklist |
 | `erp-docs-and-features.mdc` | Sync PROGRESS_INDEX + build docs on every feature |
 | `erp-code-quality.mdc` | Quality bar, flags, tsc, no god files |

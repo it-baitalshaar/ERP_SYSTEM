@@ -1,0 +1,53 @@
+---
+description: Document context and scoping — use on sales/procurement/print features
+alwaysApply: true
+---
+
+# Document context & scoping
+
+Transactional documents (quotations, orders, LPOs, invoices, etc.) must use the **resolved** company + branch from the top-bar Shop/Dept context — not raw `currentCompanyId` / `currentBranchId` from the store.
+
+## Client (pages & hooks)
+
+| Need | Use | Never |
+|------|-----|-------|
+| List/create documents | `useDocumentContext()` → `{ companyId, branchId, departmentId? }` | `useAppStore(s => s.currentCompanyId)` for API calls |
+| Print/PDF preview | `usePrintContext()` | Inline company lookup in print components |
+| Top-bar branch dropdown | `getOperationalBranches()` / `getCompanyBranches()` on store | Hard-coded branch lists |
+
+```typescript
+// ✅ GOOD — list page
+const { companyId, branchId } = useDocumentContext();
+const data = await fetchSalesOrders(companyId, branchId);
+
+// ❌ BAD — ignores department/warehouse resolution
+const companyId = useAppStore((s) => s.currentCompanyId);
+```
+
+- `departmentId` is a **UI filter only** — never persist on document rows.
+- Pass `companyId` + `branchId` to every `lib/data` fetch that returns branch-scoped documents.
+
+## Server & API
+
+- **List queries**: `.match(documentScopeFilter(companyId, branchId))` from `src/lib/server/document-scope.ts`
+- **GET handlers**: `parseDocumentScopeQuery(searchParams)` — do not duplicate `companyId required` checks
+- **POST/PATCH**: validate `company_id` + `assertCompanyAccess`; set `branch_id` from request body
+- Resolution logic lives in `src/lib/org/document-context.ts` only — not in route handlers or pages
+
+## Adding a new document type
+
+1. Migration: `company_id` + `branch_id` columns, `unique (company_id, number)`
+2. Server mapper + insert payload in `src/lib/server/<module>.ts`
+3. API GET branch uses `documentScopeFilter`; POST sets `branch_id` from body
+4. Page: `useDocumentContext()` + pass scope to `lib/data` fetchers
+5. Print: add `DocumentTitleKey` + mapper in `src/lib/documents/` if printable
+
+## File map
+
+| Layer | Path |
+|-------|------|
+| Pure resolution | `src/lib/org/document-context.ts` |
+| React hook | `src/hooks/use-document-context.ts` |
+| DB filter helper | `src/lib/server/document-scope.ts` |
+| Print context | `src/components/documents/use-print-context.ts` |
+| Template defaults | `src/lib/documents/template-settings.ts` |

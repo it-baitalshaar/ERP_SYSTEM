@@ -23,6 +23,7 @@ import { checkCustomerDelete, deleteCustomer } from "@/lib/server/customer-delet
 import type { DocumentStatus, LineItem } from "@/lib/types";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
+import { documentScopeFilter, parseDocumentScopeQuery } from "@/lib/server/document-scope";
 
 async function requireSession() {
   const token = await getSessionFromCookies();
@@ -35,12 +36,12 @@ export async function GET(request: Request) {
     await requireSession();
 
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get("companyId");
-    const resource = searchParams.get("resource") ?? "customers";
-
-    if (!companyId) {
-      return NextResponse.json({ error: "companyId required" }, { status: 400 });
+    const scopeResult = parseDocumentScopeQuery(searchParams);
+    if (!scopeResult.ok) {
+      return NextResponse.json({ error: scopeResult.error }, { status: scopeResult.status });
     }
+    const { companyId, branchId } = scopeResult.scope;
+    const resource = searchParams.get("resource") ?? "customers";
 
     const db = createAdminClientOrNull();
     if (!db) return NextResponse.json({ data: [] });
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("quotations")
         .select("*, customers(name, phone)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapQuotation) });
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("sales_orders")
         .select("*, customers(name, phone)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapSalesOrder) });
@@ -79,7 +80,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("tax_invoices")
         .select("*, customers(name, phone)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapTaxInvoice) });
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("delivery_notes")
         .select("*, tax_invoices(number, customers(name, phone))")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapDeliveryNote) });

@@ -35,11 +35,11 @@ import {
   procurementAction,
 } from "@/lib/data/procurement";
 import type { MaterialRequest, PurchasePaymentTerms, Supplier } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function MaterialRequestsPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,12 +51,12 @@ export default function MaterialRequestsPage() {
 
   const load = useCallback(async () => {
     const [r, s] = await Promise.all([
-      fetchMaterialRequests(currentCompanyId),
-      fetchSuppliers(currentCompanyId),
+      fetchMaterialRequests(companyId, branchId),
+      fetchSuppliers(companyId),
     ]);
     setRequests(r);
     setSuppliers(s);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -66,7 +66,7 @@ export default function MaterialRequestsPage() {
     setActing(id);
     const result = await procurementAction<MaterialRequest>(
       "material_requests",
-      currentCompanyId,
+      companyId,
       id,
       action
     );
@@ -87,7 +87,7 @@ export default function MaterialRequestsPage() {
     setActing(convertMrId);
     const result = await procurementAction(
       "material_requests",
-      currentCompanyId,
+      companyId,
       convertMrId,
       "convert_to_lpo",
       { supplier_id: supplierId, payment_terms_type: paymentTerms }
@@ -151,7 +151,7 @@ export default function MaterialRequestsPage() {
               module="procurement"
               resource="material_requests"
               documentId={mr.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
@@ -182,8 +182,8 @@ export default function MaterialRequestsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         kind="material_request"
-        companyId={currentCompanyId}
-        branchId={currentBranchId}
+        companyId={companyId}
+        branchId={branchId}
         suppliers={suppliers}
         onCreated={() => void load()}
       />

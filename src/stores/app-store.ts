@@ -33,6 +33,11 @@ import {
 } from "@/lib/data/auth";
 import { upsertFeatureFlag } from "@/lib/data/feature-flags";
 import type { SessionPayload } from "@/lib/server/users";
+import {
+  getOperationalBranches,
+  resolveDocumentContext,
+  type DocumentContext,
+} from "@/lib/org/document-context";
 
 export interface PreviewUserSnapshot {
   userId: string;
@@ -84,6 +89,7 @@ interface AppState {
   getOrganizationCompanies: () => Company[];
   getCompanyBranches: () => Branch[];
   getCompanyWarehouses: () => OrgWarehouse[];
+  getDocumentContext: () => DocumentContext;
   getEffectivePermissions: () => EffectivePermission[];
   isFeatureEnabled: (key: string) => boolean;
 }
@@ -189,18 +195,33 @@ export const useAppStore = create<AppState>()(
       },
 
       setCompany: async (companyId) => {
-        const companyBranches = get().branches.filter((b) => b.company_id === companyId);
-        const companyWarehouses = get().warehouses.filter((w) => w.company_id === companyId);
-        const company = get().companies.find((c) => c.id === companyId);
+        const state = get();
+        const operationalBranches = getOperationalBranches({
+          currentCompanyId: companyId,
+          currentBranchId: state.currentBranchId,
+          currentWarehouseId: state.currentWarehouseId,
+          currentSiteKind: state.currentSiteKind,
+          currentOrganizationId: state.currentOrganizationId,
+          companies: state.companies,
+          branches: state.branches,
+          warehouses: state.warehouses,
+        });
+        const preservedBranch = operationalBranches.find(
+          (b) => b.id === state.currentBranchId
+        );
+        const companyWarehouses = state.warehouses.filter(
+          (w) => w.company_id === companyId
+        );
+        const company = state.companies.find((c) => c.id === companyId);
         const flags = await hydrateFeatureFlags(
           companyId,
           company?.business_lines ?? ["trading"]
         );
         set({
           currentCompanyId: companyId,
-          currentBranchId: companyBranches[0]?.id ?? "",
+          currentBranchId: preservedBranch?.id ?? operationalBranches[0]?.id ?? "",
           currentWarehouseId: companyWarehouses[0]?.id ?? "",
-          currentSiteKind: companyBranches.length ? "branch" : "warehouse",
+          currentSiteKind: operationalBranches.length ? "branch" : "warehouse",
           featureFlags: flags,
         });
       },
@@ -273,11 +294,36 @@ export const useAppStore = create<AppState>()(
             get().currentUser?.company_ids.includes(c.id)
         ),
 
-      getCompanyBranches: () =>
-        get().branches.filter((b) => b.company_id === get().currentCompanyId),
+      getCompanyBranches: () => {
+        const state = get();
+        return getOperationalBranches({
+          currentCompanyId: state.currentCompanyId,
+          currentBranchId: state.currentBranchId,
+          currentWarehouseId: state.currentWarehouseId,
+          currentSiteKind: state.currentSiteKind,
+          currentOrganizationId: state.currentOrganizationId,
+          companies: state.companies,
+          branches: state.branches,
+          warehouses: state.warehouses,
+        });
+      },
 
       getCompanyWarehouses: () =>
         get().warehouses.filter((w) => w.company_id === get().currentCompanyId),
+
+      getDocumentContext: () => {
+        const state = get();
+        return resolveDocumentContext({
+          currentCompanyId: state.currentCompanyId,
+          currentBranchId: state.currentBranchId,
+          currentWarehouseId: state.currentWarehouseId,
+          currentSiteKind: state.currentSiteKind,
+          currentOrganizationId: state.currentOrganizationId,
+          companies: state.companies,
+          branches: state.branches,
+          warehouses: state.warehouses,
+        });
+      },
 
       isFeatureEnabled: (key) => {
         const state = get();

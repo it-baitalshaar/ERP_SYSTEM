@@ -12,17 +12,17 @@ import { deliveryNoteToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, deliveryNoteColumns } from "@/components/modules/sales-shared";
 import { fetchDeliveryNotes, salesAction } from "@/lib/data/sales";
 import type { DeliveryNote } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 export default function DeliveryNotesPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId, branchId } = useDocumentContext();
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setNotes(await fetchDeliveryNotes(currentCompanyId));
-  }, [currentCompanyId]);
+    setNotes(await fetchDeliveryNotes(companyId, branchId));
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -32,7 +32,7 @@ export default function DeliveryNotesPage() {
     setActing(id);
     const result = await salesAction<DeliveryNote>(
       "delivery_notes",
-      currentCompanyId,
+      companyId,
       id,
       "post"
     );
@@ -69,7 +69,7 @@ export default function DeliveryNotesPage() {
               module="sales"
               resource="delivery_notes"
               documentId={note.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>

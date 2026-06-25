@@ -792,6 +792,7 @@ All **user-requested extras** and major post-PRD capabilities are tracked in:
 - Building materials: LPO variance, supplier balance, linked payments, UOM, MRN pricing, stock movements  
 - Document templates: classic LPO + standard quote; Admin → Document Templates  
 - Below-cost sale warning (`feat_below_cost_warning`)  
+- Product warehouse availability (`feat_product_warehouse_availability`) on sales product pick  
 - Print → OS print dialog (`printHtmlInFrame`)  
 - 3-way match, admin delete, WhatsApp share  
 
@@ -810,6 +811,7 @@ All **user-requested extras** and major post-PRD capabilities are tracked in:
 # 4.T Sales Guardrails
 
 - **Below-cost warning:** `feat_below_cost_warning` in Feature Management; warns when sell price &lt; `items.cost_price` on quotation/order/invoice (`below-cost.ts`, server `assertSalesLinesNotBelowCost`).
+- **Warehouse availability:** `feat_product_warehouse_availability` in Feature Management; shows per-warehouse stock inline and in a details dialog when picking products on quotation/order/invoice (`warehouse-availability.ts`, `product-warehouse-availability.tsx`).
 
 ---
 

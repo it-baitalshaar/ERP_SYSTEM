@@ -23,18 +23,25 @@ import {
   BelowCostLineHint,
   BelowCostSummaryAlert,
 } from "@/components/sales/below-cost-warning";
+import { ProductWarehouseAvailability } from "@/components/sales/product-warehouse-availability";
 import { documentTotal } from "@/lib/sales/calculations";
 import {
   BELOW_COST_WARNING_FLAG,
   findBelowCostLines,
 } from "@/lib/sales/below-cost";
+import {
+  indexStockByItem,
+  PRODUCT_WAREHOUSE_AVAILABILITY_FLAG,
+  type WarehouseAvailability,
+} from "@/lib/sales/warehouse-availability";
 import { getSalesCatalog } from "@/lib/sales/catalog";
 import {
   createQuotation,
   createSalesOrder,
   createTaxInvoice,
 } from "@/lib/data/sales";
-import type { Customer, Item, LineItem } from "@/lib/types";
+import { fetchStockLevels } from "@/lib/data/inventory";
+import type { Customer, Item, LineItem, StockLevelRow } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
@@ -78,7 +85,11 @@ export function DocumentFormDialog({
   const belowCostWarningEnabled = useAppStore((s) =>
     s.isFeatureEnabled(BELOW_COST_WARNING_FLAG)
   );
+  const warehouseAvailabilityEnabled = useAppStore((s) =>
+    s.isFeatureEnabled(PRODUCT_WAREHOUSE_AVAILABILITY_FLAG)
+  );
   const [catalog, setCatalog] = useState<Item[]>([]);
+  const [stockLevels, setStockLevels] = useState<StockLevelRow[]>([]);
   const activeCustomers = useMemo(
     () => customers.filter((c) => !c.is_blocked),
     [customers]
@@ -92,8 +103,19 @@ export function DocumentFormDialog({
   const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (open) void getSalesCatalog(companyId).then(setCatalog);
-  }, [open, companyId]);
+    if (!open) return;
+    void getSalesCatalog(companyId).then(setCatalog);
+    if (warehouseAvailabilityEnabled) {
+      void fetchStockLevels(companyId).then(setStockLevels);
+    } else {
+      setStockLevels([]);
+    }
+  }, [open, companyId, warehouseAvailabilityEnabled]);
+
+  const stockByItem = useMemo(
+    () => (warehouseAvailabilityEnabled ? indexStockByItem(stockLevels) : new Map()),
+    [warehouseAvailabilityEnabled, stockLevels]
+  );
 
   useEffect(() => {
     const justOpened = open && !wasOpen.current;
@@ -281,14 +303,25 @@ export function DocumentFormDialog({
                         <SelectValue placeholder="Pick from catalog" />
                       </SelectTrigger>
                       <SelectContent>
-                        {catalog.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.sku} — {item.name}
-                            {(item.cost_price ?? 0) > 0
-                              ? ` (cost ${item.cost_price})`
-                              : ""}
-                          </SelectItem>
-                        ))}
+                        {catalog.map((item) => {
+                          const availTotal = warehouseAvailabilityEnabled
+                            ? (stockByItem.get(item.id) ?? []).reduce(
+                                (sum: number, w: WarehouseAvailability) =>
+                                  sum + w.qty_available,
+                                0
+                              )
+                            : null;
+                          return (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.sku} — {item.name}
+                              {warehouseAvailabilityEnabled &&
+                                ` · ${availTotal} avail`}
+                              {(item.cost_price ?? 0) > 0
+                                ? ` (cost ${item.cost_price})`
+                                : ""}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <Input
@@ -298,6 +331,14 @@ export function DocumentFormDialog({
                     />
                     {belowCostWarningEnabled && (
                       <BelowCostLineHint warning={warningByIndex.get(index)} />
+                    )}
+                    {warehouseAvailabilityEnabled && line.item_id && (
+                      <ProductWarehouseAvailability
+                        itemId={line.item_id}
+                        itemName={line.item_name}
+                        uom={line.uom}
+                        warehouses={stockByItem.get(line.item_id) ?? []}
+                      />
                     )}
                   </div>
                   <div className="space-y-1">

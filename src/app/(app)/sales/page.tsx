@@ -9,15 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { salesOrderColumns } from "@/components/modules/sales-shared";
 import type { SalesOrder } from "@/lib/types";
 import { fetchSalesOrders } from "@/lib/data/sales";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function SalesDashboardPage() {
-  const currentCompanyId = useAppStore((s) => s.currentCompanyId);
+  const { companyId, branchId } = useDocumentContext();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
 
   useEffect(() => {
-    void fetchSalesOrders(currentCompanyId).then(setOrders);
-  }, [currentCompanyId]);
+    void fetchSalesOrders(companyId, branchId).then(setOrders);
+  }, [companyId, branchId]);
 
   return (
     <div>

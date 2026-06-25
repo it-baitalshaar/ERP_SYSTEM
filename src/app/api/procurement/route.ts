@@ -42,6 +42,7 @@ import {
 import { isAdminRole } from "@/lib/permissions";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
+import { documentScopeFilter, parseDocumentScopeQuery } from "@/lib/server/document-scope";
 
 async function requireSession() {
   const token = await getSessionFromCookies();
@@ -71,12 +72,12 @@ export async function GET(request: Request) {
   try {
     await requireSession();
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get("companyId");
-    const resource = resolveResource(searchParams.get("resource") ?? "suppliers");
-
-    if (!companyId) {
-      return NextResponse.json({ error: "companyId required" }, { status: 400 });
+    const scopeResult = parseDocumentScopeQuery(searchParams);
+    if (!scopeResult.ok) {
+      return NextResponse.json({ error: scopeResult.error }, { status: scopeResult.status });
     }
+    const { companyId, branchId } = scopeResult.scope;
+    const resource = resolveResource(searchParams.get("resource") ?? "suppliers");
 
     const db = createAdminClientOrNull();
     if (!db) return NextResponse.json({ data: [] });
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("material_requests")
         .select(MATERIAL_REQUEST_SELECT)
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapMaterialRequest) });
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("purchase_orders")
         .select("*, suppliers(name, phone)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapPurchaseOrder) });
@@ -115,7 +116,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("proforma_invoices")
         .select("*, suppliers(name, phone), purchase_orders(number)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapProformaInvoice) });
@@ -125,7 +126,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("supplier_delivery_notes")
         .select("*, suppliers(name, phone), purchase_orders(number)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapSupplierDeliveryNote) });
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("material_receipt_notes")
         .select("*, purchase_orders(number)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapMaterialReceiptNote) });
@@ -144,8 +145,10 @@ export async function GET(request: Request) {
     if (resource === "supplier_invoices") {
       const { data, error } = await db
         .from("supplier_invoices")
-        .select("*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)")
-        .eq("company_id", companyId)
+        .select(
+          "*, suppliers(name, phone), purchase_orders(number), material_receipt_notes(number)"
+        )
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapSupplierInvoice) });
@@ -182,7 +185,7 @@ export async function GET(request: Request) {
       const { data, error } = await db
         .from("purchase_payments")
         .select("*, suppliers(name, phone), supplier_invoices(number)")
-        .eq("company_id", companyId)
+        .match(documentScopeFilter(companyId, branchId))
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapPurchasePayment) });

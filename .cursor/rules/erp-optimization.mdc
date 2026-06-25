@@ -1,0 +1,73 @@
+---
+description: Optimization checklist — run before finishing any feature or fix
+alwaysApply: true
+---
+
+# ERP optimization checklist
+
+Apply on **every** change. Goal: structured, DRY, type-safe code with zero `tsc` errors.
+
+## Before marking done
+
+1. `pnpm exec tsc --noEmit` — fix all type errors
+2. No duplicated defaults — import from a single source (`DEFAULT_DOCUMENT_TEMPLATE_SETTINGS`, `documentTotal`, etc.)
+3. No duplicated validation — reuse helpers (`parseDocumentScopeQuery`, `assertCompanyAccess`, `normalizeLines`)
+4. Match the nearest completed module (Sales → Procurement → Inventory)
+
+## Structure (do not skip layers)
+
+```
+page.tsx → lib/data → api/route → lib/server → migration
+```
+
+- Business logic in `lib/server/` — never in `page.tsx` or route beyond auth + dispatch
+- Shared columns/headers in `components/modules/*-shared.tsx`
+- Cross-module logic in dedicated libs (`lib/documents/`, `lib/org/`, `lib/server/document-scope.ts`)
+
+## React & client performance
+
+- **Zustand object selectors**: use `useShallow` from `zustand/react/shallow` to avoid re-renders
+- **Document scope**: `useDocumentContext()` — one hook, store-backed (see `erp-document-context.mdc`)
+- **Parallel fetches**: `Promise.all([fetchA(), fetchB()])` in page `load` callbacks
+- **Effects**: cancel async work on unmount (`let cancelled = false` pattern in `use-print-context.ts`)
+- **Memo**: `useCallback` for `load` functions with correct deps; avoid inline object/array deps in hot paths
+
+## Server & data
+
+- **Org lookups**: index with `Map` when resolving company/branch/warehouse in loops (`document-context.ts` pattern)
+- **Supabase lists**: `.match(documentScopeFilter(...))` + narrow `.select()` — no `select('*')` when joins suffice
+- **Mappers**: pure `mapX(row)` functions; coerce types once in server layer
+- **Parallel DB reads**: `Promise.all` for independent queries (see `getDocumentTemplateSettings`)
+
+## Migrations
+
+- Idempotent: `IF NOT EXISTS`, `DROP TRIGGER IF EXISTS`, `do $$ … exception when duplicate_object`
+- Prefer **enum types** over text + check constraints for fixed value sets
+- Section headers (`-- ---`) and `comment on` for non-obvious columns
+- One concern per file; log in `PROGRESS_INDEX.md` §8
+
+## Anti-patterns (reject in review)
+
+| Bad | Good |
+|-----|------|
+| New feature with no `feat_*` flag | Flag in Feature Management + `isFeatureEnabled` |
+| Copy-paste default template fields | `DEFAULT_DOCUMENT_TEMPLATE_SETTINGS` |
+| `currentCompanyId` for document API calls | `useDocumentContext()` |
+| Inline `companyId required` in every route | `parseDocumentScopeQuery()` |
+| God file >500 lines | Split by concern |
+| Mock-only page when DB path exists | Wire API or mark coming-soon |
+| Calculation logic in page/dialog | `lib/sales/calculations.ts` or `lib/documents/` |
+
+## Docs sync
+
+After user-facing changes: update `PROGRESS_INDEX.md` per `erp-docs-and-features.mdc`.
+
+## Rules index
+
+| Rule | Purpose |
+|------|---------|
+| `erp-project-structure.mdc` | Layers, naming, migrations |
+| `erp-document-context.mdc` | Company/branch scoping for documents |
+| `erp-optimization.mdc` | This checklist |
+| `erp-code-quality.mdc` | Quality bar, flags, file size |
+| `erp-docs-and-features.mdc` | PROGRESS_INDEX + build docs |

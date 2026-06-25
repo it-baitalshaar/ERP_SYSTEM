@@ -38,13 +38,13 @@ import {
   procurementAction,
 } from "@/lib/data/procurement";
 import type { PurchasePayment, PurchasePaymentType, Supplier, SupplierInvoice } from "@/lib/types";
-import { useAppStore } from "@/stores/app-store";
+import { useDocumentContext } from "@/hooks/use-document-context";
 import { toast } from "sonner";
 
 const NONE_INVOICE = "__none__";
 
 export default function PurchasePaymentsPage() {
-  const { currentCompanyId, currentBranchId } = useAppStore();
+  const { companyId, branchId } = useDocumentContext();
   const [payments, setPayments] = useState<PurchasePayment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
@@ -59,14 +59,14 @@ export default function PurchasePaymentsPage() {
 
   const load = useCallback(async () => {
     const [p, s, inv] = await Promise.all([
-      fetchPurchasePayments(currentCompanyId),
-      fetchSuppliers(currentCompanyId),
-      fetchSupplierInvoices(currentCompanyId),
+      fetchPurchasePayments(companyId, branchId),
+      fetchSuppliers(companyId),
+      fetchSupplierInvoices(companyId, branchId),
     ]);
     setPayments(p);
     setSuppliers(s);
     setInvoices(inv);
-  }, [currentCompanyId]);
+  }, [companyId, branchId]);
 
   useEffect(() => {
     void load();
@@ -118,8 +118,8 @@ export default function PurchasePaymentsPage() {
 
     setSaving(true);
     const result = await createPurchasePayment({
-      company_id: currentCompanyId,
-      branch_id: currentBranchId,
+      company_id: companyId,
+      branch_id: branchId,
       supplier_id: supplierId,
       supplier_invoice_id:
         supplierInvoiceId !== NONE_INVOICE ? supplierInvoiceId : undefined,
@@ -143,7 +143,7 @@ export default function PurchasePaymentsPage() {
     setActing(id);
     const result = await procurementAction<PurchasePayment>(
       "purchase_payments",
-      currentCompanyId,
+      companyId,
       id,
       "post"
     );
@@ -180,7 +180,7 @@ export default function PurchasePaymentsPage() {
               module="procurement"
               resource="purchase_payments"
               documentId={pay.id}
-              companyId={currentCompanyId}
+              companyId={companyId}
               onDeleted={() => void load()}
             />
           </div>
