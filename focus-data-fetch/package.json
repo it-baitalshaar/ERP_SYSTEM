@@ -1,0 +1,22 @@
+{
+  "name": "focus-data-fetch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fetch Focus v6 SQL Server data into Supabase raw staging (runs on Focus server via Docker)",
+  "type": "module",
+  "scripts": {
+    "explore": "tsx src/cli.ts explore",
+    "sync": "tsx src/cli.ts sync",
+    "sync:all": "tsx src/cli.ts sync --all-databases"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "mssql": "^11.0.1"
+  },
+  "devDependencies": {
+    "@types/mssql": "^9.1.7",
+    "@types/node": "^25.9.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

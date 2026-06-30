@@ -1,10 +1,11 @@
 # ERP Build — Progress Index
-Last updated: 2026-06-16 by Cursor Agent
+Last updated: 2026-06-26 by Cursor Agent
 
 ## 1. Status Snapshot
 - Phase: 2 — Supabase + Sales + Procurement + Inventory core wired
 - Stack: Next.js 15 + TS + Tailwind + shadcn + Zustand + Supabase
-- Backend: Migrations through `0013_document_templates.sql`
+- Backend: Migrations through `0014_focus_raw_staging.sql`
+- Focus import: `focus-data-fetch/` Docker job → Supabase raw staging (no ERP mapping yet)
 - Structure: `.cursor/rules/` — `erp-project-structure`, `erp-code-quality`, `erp-docs-and-features` (always apply)
 - Extras catalog: `docs/EXTRA_FEATURES.md`
 
@@ -55,8 +56,8 @@ Last updated: 2026-06-16 by Cursor Agent
 - Finance / GL integration
 
 ## 7. Next Session Should Start With
-- Run pending migrations on Supabase (`0012`, `0013`); smoke-test print + below-cost warning.
-- Customer payment receipts linked to tax invoices.
+- Apply `0014_focus_raw_staging.sql`; run `focus-data-fetch` explore + sync on Focus server.
+- Map `focus_raw_batches` → ERP masters (customers, items, suppliers).
 
 ## 8. Supabase Schema Status
 | Migration | Status |
@@ -67,3 +68,4 @@ Last updated: 2026-06-16 by Cursor Agent
 | 0011_inventory.sql | ready — items, stock_levels, movements |
 | 0012_building_materials.sql | ready — cost_price, supplier balance, MRN variance |
 | 0013_document_templates.sql | ready — company print template settings |
+| 0014_focus_raw_staging.sql | ready — Focus SQL raw import staging (focus-data-fetch) |
