@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/i18n/field-label";
+import { BilingualText } from "@/components/i18n/field-label";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useTranslations } from "@/hooks/use-translations";
 import { createSupplier, updateSupplier } from "@/lib/data/procurement";
 import type { Supplier } from "@/lib/types";
 import { toast } from "sonner";
@@ -49,6 +51,7 @@ export function SupplierFormDialog({
   supplier,
   onSaved,
 }: SupplierFormDialogProps) {
+  const { t } = useTranslations();
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -71,7 +74,7 @@ export function SupplierFormDialog({
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error("Supplier name is required");
+      toast.error(t("common.supplierNameRequired"));
       return;
     }
 
@@ -86,7 +89,11 @@ export function SupplierFormDialog({
       return;
     }
 
-    toast.success(supplier ? "Supplier updated" : "Supplier created");
+    toast.success(
+      supplier
+        ? t("procurement.pages.suppliers.updated")
+        : t("procurement.pages.suppliers.created")
+    );
     onSaved();
     onOpenChange(false);
   };
@@ -95,11 +102,17 @@ export function SupplierFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{supplier ? "Edit supplier" : "New supplier"}</DialogTitle>
+          <DialogTitle>
+            {supplier ? (
+              <BilingualText labelKey="procurement.pages.suppliers.edit" />
+            ) : (
+              <BilingualText labelKey="procurement.pages.suppliers.new" />
+            )}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="sup-name">Name</Label>
+            <FieldLabel htmlFor="sup-name" labelKey="procurement.fields.name" />
             <Input
               id="sup-name"
               value={form.name}
@@ -108,7 +121,7 @@ export function SupplierFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sup-email">Email</Label>
+              <FieldLabel htmlFor="sup-email" labelKey="procurement.fields.email" />
               <Input
                 id="sup-email"
                 type="email"
@@ -117,7 +130,7 @@ export function SupplierFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sup-phone">Phone</Label>
+              <FieldLabel htmlFor="sup-phone" labelKey="procurement.fields.phone" />
               <Input
                 id="sup-phone"
                 value={form.phone}
@@ -127,7 +140,7 @@ export function SupplierFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Classification</Label>
+              <FieldLabel labelKey="procurement.fields.classification" />
               <Select
                 value={form.classification}
                 onValueChange={(v) => setForm({ ...form, classification: v })}
@@ -136,13 +149,13 @@ export function SupplierFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="local">Local</SelectItem>
-                  <SelectItem value="import">Import</SelectItem>
+                  <SelectItem value="local">{t("procurement.fields.local")}</SelectItem>
+                  <SelectItem value="import">{t("procurement.fields.import")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sup-credit-days">Credit days</Label>
+              <FieldLabel htmlFor="sup-credit-days" labelKey="procurement.fields.creditDays" />
               <Input
                 id="sup-credit-days"
                 type="number"
@@ -155,7 +168,7 @@ export function SupplierFormDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sup-terms">Payment terms</Label>
+            <FieldLabel htmlFor="sup-terms" labelKey="procurement.fields.paymentTerms" />
             <Input
               id="sup-terms"
               value={form.payment_terms}
@@ -164,8 +177,12 @@ export function SupplierFormDialog({
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <p className="text-sm font-medium">Blocked</p>
-              <p className="text-xs text-muted-foreground">Prevent new purchase documents</p>
+              <p className="text-sm font-medium">
+                <BilingualText labelKey="procurement.fields.blockedSwitch" />
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <BilingualText labelKey="procurement.fields.blockedHint" />
+              </p>
             </div>
             <Switch
               checked={form.is_blocked}
@@ -175,10 +192,10 @@ export function SupplierFormDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={() => void handleSave()} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

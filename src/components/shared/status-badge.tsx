@@ -1,6 +1,9 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import type { DocumentStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/hooks/use-translations";
 
 const statusStyles: Record<DocumentStatus, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -12,9 +15,10 @@ const statusStyles: Record<DocumentStatus, string> = {
 };
 
 export function StatusBadge({ status, className }: { status: DocumentStatus; className?: string }) {
+  const { t } = useTranslations();
   return (
-    <Badge variant="outline" className={cn("capitalize", statusStyles[status], className)}>
-      {status.replace(/_/g, " ")}
+    <Badge variant="outline" className={cn(statusStyles[status], className)}>
+      {t(`status.${status}`, status.replace(/_/g, " "))}
     </Badge>
   );
 }

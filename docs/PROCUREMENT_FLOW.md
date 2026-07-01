@@ -37,7 +37,7 @@ Payments can be **advance + balance**, **partial**, or **full** — tracked on `
 |------|--------|
 | **Supplier master** | Payment terms, currency, classification (local/import) |
 | **RFQ / vendor comparison** | Optional before LPO when price not fixed |
-| **Approval workflow** | MR → `pending_approval` → `approved` / `rejected` |
+| **Approval workflow** | MR → `pending_approval` → `approved` / `rejected` — configurable in **Admin → Workflow Builder** (`feat_procurement_workflow`) |
 | **3-way match** | LPO qty/price vs MRN received vs supplier invoice |
 | **Purchase return / debit note** | Future: return to supplier after MRN |
 | **Landed cost** | Freight, duty — future on MRN |
@@ -81,8 +81,18 @@ Do **not** put business logic in page components. Do **not** add duplicate API r
 
 ---
 
+---
+
 ## 7. Cross-references
 
 - Sales module pattern: `src/lib/server/sales.ts`, `src/app/api/sales/route.ts`
 - PRD: `02_PRD.md` procurement rows
 - Progress: `PROGRESS_INDEX.md` § Procurement
+
+## 8. Workflow builder (admin)
+
+- **Admin:** `/admin/workflows` → Procurement → configure steps, approvers, enable/disable gates
+- **Users:** `/procurement/workflow` — read-only process mindmap
+- **Flag:** `feat_procurement_workflow` — when on, MR/LPO submit respects approval settings; approver checks enforced on approve actions
+- **Schema:** `company_workflow_settings` (`0016_procurement_workflow.sql`)
+- **Code:** `src/lib/workflows/procurement.ts`, `src/lib/server/workflows.ts`, `src/app/api/admin/workflows/route.ts`

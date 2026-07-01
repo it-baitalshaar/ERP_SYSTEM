@@ -1,11 +1,13 @@
 import type {
   Customer,
+  CustomerProductBlock,
   DeliveryNote,
   LineItem,
   Quotation,
   SalesOrder,
   TaxInvoice,
 } from "@/lib/types";
+import type { LineFulfillment } from "@/lib/sales/delivery-fulfillment";
 import type { BelowCostLineWarning } from "@/lib/sales/below-cost";
 import {
   customers as mockCustomers,
@@ -205,5 +207,48 @@ export async function salesAction<T>(
   return salesRequest<T>("/api/sales", {
     method: "PATCH",
     body: JSON.stringify({ resource, company_id: companyId, id, action, ...extra }),
+  });
+}
+
+export async function fetchInvoiceFulfillment(
+  companyId: string,
+  invoiceId: string
+): Promise<LineFulfillment[]> {
+  const res = await fetch(
+    `/api/sales?companyId=${companyId}&resource=invoice_fulfillment&invoiceId=${invoiceId}`
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as { data?: LineFulfillment[] };
+  return json.data ?? [];
+}
+
+export async function fetchCustomerProductBlocks(
+  companyId: string,
+  filters?: { customerId?: string; itemId?: string; activeOnly?: boolean }
+): Promise<CustomerProductBlock[]> {
+  const params = new URLSearchParams({ companyId, resource: "customer_product_blocks" });
+  if (filters?.customerId) params.set("customerId", filters.customerId);
+  if (filters?.itemId) params.set("itemId", filters.itemId);
+  if (filters?.activeOnly) params.set("activeOnly", "true");
+  const res = await fetch(`/api/sales?${params.toString()}`);
+  if (!res.ok) return [];
+  const json = (await res.json()) as { data?: CustomerProductBlock[] };
+  return json.data ?? [];
+}
+
+export async function createCustomerProductBlock(input: {
+  company_id: string;
+  customer_id: string;
+  item_id: string;
+  qty: number;
+  blocked_until: string;
+  reason?: string;
+  invoice_id?: string;
+  warehouse_id?: string;
+  whatsapp_reminder?: boolean;
+}): Promise<{ data?: CustomerProductBlock; error?: string }> {
+  return salesRequest<CustomerProductBlock>("/api/sales", {
+    method: "POST",
+    body: JSON.stringify({ resource: "customer_product_blocks", ...input }),
   });
 }

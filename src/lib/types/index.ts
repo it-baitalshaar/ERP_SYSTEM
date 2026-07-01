@@ -92,6 +92,30 @@ export interface Customer {
   is_blocked: boolean;
 }
 
+export type CustomerBlockStatus = "active" | "expired" | "released";
+
+export interface CustomerProductBlock {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  customer_name?: string;
+  customer_phone?: string;
+  item_id: string;
+  item_name?: string;
+  item_sku?: string;
+  warehouse_id?: string;
+  qty: number;
+  blocked_until: string;
+  status: CustomerBlockStatus;
+  reason?: string;
+  invoice_id?: string;
+  invoice_number?: string;
+  whatsapp_reminder: boolean;
+  reminder_sent_at?: string;
+  created_at: string;
+  released_at?: string;
+}
+
 export interface Supplier {
   id: string;
   company_id: string;
@@ -257,6 +281,7 @@ export interface TaxInvoice {
   vat_amount: number;
   total: number;
   is_paid: boolean;
+  paid_line_qty?: Record<string, number>;
   e_invoice_status?: "pending" | "submitted" | "accepted";
 }
 

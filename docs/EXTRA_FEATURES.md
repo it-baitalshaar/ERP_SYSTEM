@@ -17,7 +17,10 @@ Living catalog of capabilities added during build that extend or specialize the 
 | Stock movements list | — | `/inventory/movements`, `api/inventory` `stock_movements` | Audit trail |
 | Document templates (LPO + quote) | Admin → Document Templates | `src/lib/documents/templates/*`, `0013_document_templates.sql` | Logo, doc naming, classic vs standard |
 | Below-cost sale warning | `feat_below_cost_warning` | `src/lib/sales/below-cost.ts`, Feature Management | Warn if sell < `cost_price` |
-| Product warehouse availability | `feat_product_warehouse_availability` | `src/lib/sales/warehouse-availability.ts`, `product-warehouse-availability.tsx`, sales document form | Inline + details popup per warehouse |
+| Product warehouse availability | `feat_product_warehouse_availability` | `src/lib/sales/warehouse-availability.ts`, sales document form | Inline + details popup per warehouse |
+| Partial sales delivery | `feat_partial_sales_delivery` | `partial-delivery-dialog.tsx`, `sales-delivery.ts` | Partial pay + DN for paid qty |
+| Customer product reservations | `feat_customer_product_blocks` | `customer-product-blocks-panel.tsx`, `0017` migration | Hold stock per customer + WhatsApp reminder |
+| Procurement workflow builder | `feat_procurement_workflow` | `/admin/workflows/procurement`, `/procurement/workflow` | Configurable approvals + mindmap |
 | Windows print dialog | — | `src/lib/documents/print.ts` `printHtmlInFrame` | iframe + `window.print()` |
 | Per-user module grants | — | `0009_user_module_permissions.sql`, `/admin/users` | Extra modules beyond role |
 

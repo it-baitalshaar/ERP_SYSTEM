@@ -31,6 +31,24 @@ const flagDefs: Omit<FeatureFlag, "company_id" | "enabled">[] = [
     description: "Show which warehouses have stock when picking a product on sales documents",
     category: "Sales & CRM",
   },
+  {
+    key: "feat_procurement_workflow",
+    label: "Procurement workflow builder",
+    description: "Configurable approval gates and process map for the purchase cycle",
+    category: "Procurement",
+  },
+  {
+    key: "feat_partial_sales_delivery",
+    label: "Partial sales delivery",
+    description: "Partial payment tracking and delivery notes for paid qty only",
+    category: "Sales & CRM",
+  },
+  {
+    key: "feat_customer_product_blocks",
+    label: "Customer product reservations",
+    description: "Hold stock for a customer until a date; history + WhatsApp reminders",
+    category: "Sales & CRM",
+  },
 ];
 
 export function getDefaultFeatureFlags(companyId: string): FeatureFlag[] {

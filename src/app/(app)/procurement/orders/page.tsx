@@ -11,13 +11,14 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BilingualText } from "@/components/i18n/field-label";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
 import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
 import { purchaseOrderToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
-  purchaseOrderColumns,
+  usePurchaseOrderColumns,
 } from "@/components/modules/procurement-shared";
 import { PurchaseDocumentFormDialog } from "@/components/procurement/purchase-document-form-dialog";
 import {
@@ -28,10 +29,13 @@ import {
 import type { PurchaseOrder, Supplier } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 import { toast } from "sonner";
 
 export default function PurchaseOrdersPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { t, label } = useTranslations();
+  const purchaseOrderColumns = usePurchaseOrderColumns();
   const currentWarehouseId = useAppStore((s) => s.currentWarehouseId);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -54,7 +58,7 @@ export default function PurchaseOrdersPage() {
   const runAction = async (
     id: string,
     action: string,
-    success: string,
+    successKey: string,
     extra?: Record<string, unknown>
   ) => {
     setActing(id);
@@ -64,10 +68,10 @@ export default function PurchaseOrdersPage() {
       toast.error(result.error);
       return;
     }
-    toast.success(success, {
+    toast.success(t(successKey), {
       description:
         action === "create_proforma"
-          ? "Open Procurement → Proforma Invoices to view it."
+          ? t("procurement.pages.purchaseOrders.proformaOpenHint")
           : undefined,
     });
     void load();
@@ -78,7 +82,7 @@ export default function PurchaseOrdersPage() {
     createPrintColumn(purchaseOrderToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => {
         const po = row.original;
         const busy = acting === po.id;
@@ -89,19 +93,27 @@ export default function PurchaseOrdersPage() {
                 size="sm"
                 variant="outline"
                 disabled={busy}
-                onClick={() => void runAction(po.id, "submit", "LPO submitted")}
+                onClick={() =>
+                  void runAction(
+                    po.id,
+                    "submit",
+                    "procurement.pages.purchaseOrders.submitted"
+                  )
+                }
               >
-                <Send className="mr-1 h-3 w-3" />
-                Submit
+                <Send className="me-1 h-3 w-3" />
+                {t("procurement.pages.purchaseOrders.submit")}
               </Button>
             )}
             {(po.status === "draft" || po.status === "pending_approval") && (
               <Button
                 size="sm"
                 disabled={busy}
-                onClick={() => void runAction(po.id, "approve", "LPO approved")}
+                onClick={() =>
+                  void runAction(po.id, "approve", "procurement.pages.purchaseOrders.approved")
+                }
               >
-                Approve
+                {t("procurement.pages.purchaseOrders.approve")}
               </Button>
             )}
             {po.status === "approved" && (
@@ -111,34 +123,42 @@ export default function PurchaseOrdersPage() {
                   variant="outline"
                   disabled={busy}
                   onClick={() =>
-                    void runAction(po.id, "create_proforma", "Proforma invoice created")
+                    void runAction(
+                      po.id,
+                      "create_proforma",
+                      "procurement.pages.purchaseOrders.proformaCreated"
+                    )
                   }
                 >
-                  <FileText className="mr-1 h-3 w-3" />
-                  Proforma
+                  <FileText className="me-1 h-3 w-3" />
+                  {t("procurement.pages.purchaseOrders.proforma")}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={busy}
                   onClick={() =>
-                    void runAction(po.id, "create_delivery_note", "Delivery note created")
+                    void runAction(
+                      po.id,
+                      "create_delivery_note",
+                      "procurement.pages.purchaseOrders.deliveryCreated"
+                    )
                   }
                 >
-                  <Truck className="mr-1 h-3 w-3" />
-                  Delivery
+                  <Truck className="me-1 h-3 w-3" />
+                  {t("procurement.pages.purchaseOrders.delivery")}
                 </Button>
                 <Button
                   size="sm"
                   disabled={busy}
                   onClick={() =>
-                  void runAction(po.id, "create_mrn", "MRN created", {
-                    warehouse_id: currentWarehouseId || undefined,
-                  })
-                }
+                    void runAction(po.id, "create_mrn", "procurement.pages.purchaseOrders.mrnCreated", {
+                      warehouse_id: currentWarehouseId || undefined,
+                    })
+                  }
                 >
-                  <PackageCheck className="mr-1 h-3 w-3" />
-                  MRN
+                  <PackageCheck className="me-1 h-3 w-3" />
+                  {t("procurement.pages.purchaseOrders.mrn")}
                 </Button>
               </>
             )}
@@ -158,12 +178,12 @@ export default function PurchaseOrdersPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Purchase Orders (LPO)"
-        description="Step 2 — local purchase order; link proforma, delivery, and MRN"
+        title={<BilingualText labelKey="procurement.pages.purchaseOrders.title" />}
+        description={<BilingualText labelKey="procurement.pages.purchaseOrders.description" />}
         action={
           <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New LPO
+            <Plus className="me-2 h-4 w-4" />
+            {t("procurement.pages.purchaseOrders.new")}
           </Button>
         }
       />

@@ -21,6 +21,7 @@ import {
   PROFORMA_DETAIL_SELECT,
   purchaseOrderInsertPayload,
   resolveBranchCode,
+  resolvePurchasePaymentBranchId,
   supplierDeliveryListSelect,
   SUPPLIER_DELIVERY_DETAIL_SELECT,
   MRN_DETAIL_SELECT,
@@ -46,6 +47,13 @@ import {
   previewSupplierInvoiceFromMrn,
 } from "@/lib/server/three-way-match";
 import { isAdminRole } from "@/lib/permissions";
+import { isCompanyFeatureEnabled } from "@/lib/server/feature-flags";
+import {
+  assertWorkflowApprover,
+  getCompanyWorkflowSettings,
+  resolveSubmitStatus,
+} from "@/lib/server/workflows";
+import { PROCUREMENT_WORKFLOW_FLAG } from "@/lib/workflows/procurement";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
 import { documentScopeFilter, parseDocumentScopeQuery } from "@/lib/server/document-scope";
@@ -372,7 +380,17 @@ export async function POST(request: Request) {
       const amount = Number(body.amount ?? 0);
       if (amount <= 0) return NextResponse.json({ error: "Amount must be greater than zero" }, { status: 400 });
 
-      const branchId = body.branch_id ? String(body.branch_id) : null;
+      const supplierInvoiceId = body.supplier_invoice_id
+        ? String(body.supplier_invoice_id)
+        : null;
+      const purchaseOrderId = body.purchase_order_id ? String(body.purchase_order_id) : null;
+
+      const branchId = await resolvePurchasePaymentBranchId(db, companyId, {
+        branch_id: body.branch_id ? String(body.branch_id) : null,
+        supplier_invoice_id: supplierInvoiceId,
+        purchase_order_id: purchaseOrderId,
+      });
+
       let branchCode = "HQ";
       if (branchId) {
         branchCode = await resolveBranchCode(db, branchId);
@@ -393,9 +411,10 @@ export async function POST(request: Request) {
         .insert({
           id: randomUUID(),
           company_id: companyId,
+          branch_id: branchId,
           supplier_id: supplierId,
-          purchase_order_id: body.purchase_order_id ? String(body.purchase_order_id) : null,
-          supplier_invoice_id: body.supplier_invoice_id ? String(body.supplier_invoice_id) : null,
+          purchase_order_id: purchaseOrderId,
+          supplier_invoice_id: supplierInvoiceId,
           number,
           date: new Date().toISOString().slice(0, 10),
           payment_type: (body.payment_type as PurchasePaymentType) ?? "final",
@@ -465,9 +484,15 @@ export async function PATCH(request: Request) {
 
     if (resource === "material_requests") {
       if (action === "submit") {
+        let nextStatus: DocumentStatus = "pending_approval";
+        if (await isCompanyFeatureEnabled(db, companyId, PROCUREMENT_WORKFLOW_FLAG)) {
+          const workflow = await getCompanyWorkflowSettings(companyId, "procurement");
+          nextStatus = resolveSubmitStatus(workflow.steps, "mr_approve");
+        }
+
         const { data, error } = await db
           .from("material_requests")
-          .update({ status: "pending_approval" satisfies DocumentStatus })
+          .update({ status: nextStatus })
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
@@ -478,6 +503,17 @@ export async function PATCH(request: Request) {
       }
 
       if (action === "approve") {
+        if (await isCompanyFeatureEnabled(db, companyId, PROCUREMENT_WORKFLOW_FLAG)) {
+          await assertWorkflowApprover(
+            db,
+            companyId,
+            "procurement",
+            "mr_approve",
+            token.sub,
+            token.role_id
+          );
+        }
+
         const { data, error } = await db
           .from("material_requests")
           .update({
@@ -555,9 +591,15 @@ export async function PATCH(request: Request) {
 
     if (resource === "purchase_orders") {
       if (action === "submit") {
+        let nextStatus: DocumentStatus = "pending_approval";
+        if (await isCompanyFeatureEnabled(db, companyId, PROCUREMENT_WORKFLOW_FLAG)) {
+          const workflow = await getCompanyWorkflowSettings(companyId, "procurement");
+          nextStatus = resolveSubmitStatus(workflow.steps, "lpo_approve");
+        }
+
         const { data, error } = await db
           .from("purchase_orders")
-          .update({ status: "pending_approval" satisfies DocumentStatus })
+          .update({ status: nextStatus })
           .eq("id", id)
           .eq("company_id", companyId)
           .eq("status", "draft")
@@ -568,6 +610,17 @@ export async function PATCH(request: Request) {
       }
 
       if (action === "approve") {
+        if (await isCompanyFeatureEnabled(db, companyId, PROCUREMENT_WORKFLOW_FLAG)) {
+          await assertWorkflowApprover(
+            db,
+            companyId,
+            "procurement",
+            "lpo_approve",
+            token.sub,
+            token.role_id
+          );
+        }
+
         const { data, error } = await db
           .from("purchase_orders")
           .update({ status: "approved" satisfies DocumentStatus })

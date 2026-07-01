@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { BilingualText, FieldLabel } from "@/components/i18n/field-label";
 import {
   Select,
   SelectContent,
@@ -28,7 +28,7 @@ import { purchasePaymentToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
   formatAed,
-  purchasePaymentColumns,
+  usePurchasePaymentColumns,
 } from "@/components/modules/procurement-shared";
 import {
   createPurchasePayment,
@@ -39,12 +39,15 @@ import {
 } from "@/lib/data/procurement";
 import type { PurchasePayment, PurchasePaymentType, Supplier, SupplierInvoice } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 import { toast } from "sonner";
 
 const NONE_INVOICE = "__none__";
 
 export default function PurchasePaymentsPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { t, label } = useTranslations();
+  const purchasePaymentColumns = usePurchasePaymentColumns();
   const [payments, setPayments] = useState<PurchasePayment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
@@ -108,11 +111,11 @@ export default function PurchasePaymentsPage() {
 
   const handleCreate = async () => {
     if (!supplierId) {
-      toast.error("Select a supplier");
+      toast.error(t("procurement.pages.payments.selectSupplier"));
       return;
     }
     if (amount <= 0) {
-      toast.error("Enter a valid amount");
+      toast.error(t("procurement.pages.payments.validAmount"));
       return;
     }
 
@@ -134,7 +137,7 @@ export default function PurchasePaymentsPage() {
       return;
     }
 
-    toast.success("Payment recorded — post it to update supplier balance");
+    toast.success(t("procurement.pages.payments.recorded"));
     setDialogOpen(false);
     void load();
   };
@@ -152,7 +155,7 @@ export default function PurchasePaymentsPage() {
       toast.error(result.error);
       return;
     }
-    toast.success("Payment posted — supplier balance updated");
+    toast.success(t("procurement.pages.payments.posted"));
     void load();
   };
 
@@ -161,7 +164,7 @@ export default function PurchasePaymentsPage() {
     createPrintColumn(purchasePaymentToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => {
         const pay = row.original;
         return (
@@ -172,8 +175,8 @@ export default function PurchasePaymentsPage() {
                 disabled={acting === pay.id}
                 onClick={() => void postPayment(pay.id)}
               >
-                <Check className="mr-1 h-3 w-3" />
-                Post
+                <Check className="me-1 h-3 w-3" />
+                {t("procurement.pages.supplierInvoices.post")}
               </Button>
             )}
             <AdminDocumentDeleteButton
@@ -192,12 +195,12 @@ export default function PurchasePaymentsPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Purchase Payments"
-        description="Record payments linked to supplier invoices — posting reduces supplier balance"
+        title={<BilingualText labelKey="procurement.pages.payments.title" />}
+        description={<BilingualText labelKey="procurement.pages.payments.description" />}
         action={
           <Button onClick={openNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Record payment
+            <Plus className="me-2 h-4 w-4" />
+            {t("procurement.pages.payments.record")}
           </Button>
         }
       />
@@ -210,14 +213,16 @@ export default function PurchasePaymentsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Record purchase payment</DialogTitle>
+            <DialogTitle>
+              <BilingualText labelKey="procurement.pages.payments.recordTitle" />
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Supplier</Label>
+              <FieldLabel labelKey="procurement.fields.supplier" />
               <Select value={supplierId || undefined} onValueChange={onSupplierChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
+                  <SelectValue placeholder={t("procurement.placeholders.selectSupplier")} />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers
@@ -234,13 +239,15 @@ export default function PurchasePaymentsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Supplier invoice (optional)</Label>
+              <FieldLabel labelKey="procurement.pages.payments.supplierInvoiceOptional" />
               <Select value={supplierInvoiceId} onValueChange={onInvoiceChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Link to posted invoice" />
+                  <SelectValue placeholder={t("procurement.pages.payments.linkInvoice")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE_INVOICE}>No invoice — on-account</SelectItem>
+                  <SelectItem value={NONE_INVOICE}>
+                    {t("procurement.pages.payments.noInvoice")}
+                  </SelectItem>
                   {payableInvoices.map((inv) => (
                     <SelectItem key={inv.id} value={inv.id}>
                       {inv.number} — {formatAed(inv.total)}
@@ -250,12 +257,12 @@ export default function PurchasePaymentsPage() {
               </Select>
               {supplierId && payableInvoices.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No unpaid posted invoices for this supplier.
+                  {t("procurement.pages.payments.noUnpaidInvoices")}
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label>Payment type</Label>
+              <FieldLabel labelKey="procurement.pages.payments.paymentType" />
               <Select
                 value={paymentType}
                 onValueChange={(v) => setPaymentType(v as PurchasePaymentType)}
@@ -264,16 +271,18 @@ export default function PurchasePaymentsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="advance">Advance</SelectItem>
-                  <SelectItem value="on_delivery">On delivery</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                  <SelectItem value="final">Final</SelectItem>
-                  <SelectItem value="credit">Credit settlement</SelectItem>
+                  <SelectItem value="advance">{t("paymentTerms.advance")}</SelectItem>
+                  <SelectItem value="on_delivery">{t("paymentTerms.on_delivery")}</SelectItem>
+                  <SelectItem value="partial">{t("procurement.pages.payments.partial")}</SelectItem>
+                  <SelectItem value="final">{t("procurement.pages.payments.final")}</SelectItem>
+                  <SelectItem value="credit">
+                    {t("procurement.pages.payments.creditSettlement")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pay-amount">Amount (AED)</Label>
+              <FieldLabel htmlFor="pay-amount" labelKey="procurement.pages.payments.amountAed" />
               <Input
                 id="pay-amount"
                 type="number"
@@ -284,21 +293,21 @@ export default function PurchasePaymentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pay-ref">Reference</Label>
+              <FieldLabel htmlFor="pay-ref" labelKey="procurement.pages.payments.reference" />
               <Input
                 id="pay-ref"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="Bank ref / cheque no."
+                placeholder={t("procurement.pages.payments.referencePlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button onClick={() => void handleCreate()} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("common.saving") : t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

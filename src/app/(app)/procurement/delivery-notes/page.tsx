@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   ProcurementListHeader,
-  deliveryNoteColumns,
+  useDeliveryNoteColumns,
 } from "@/components/modules/procurement-shared";
+import { BilingualText } from "@/components/i18n/field-label";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
@@ -14,9 +15,12 @@ import { supplierDeliveryNoteToPrintable } from "@/lib/documents/mappers";
 import { fetchSupplierDeliveryNotes } from "@/lib/data/procurement";
 import type { SupplierDeliveryNote } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 
 export default function SupplierDeliveryNotesPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { label } = useTranslations();
+  const deliveryNoteColumns = useDeliveryNoteColumns();
   const [rows, setRows] = useState<SupplierDeliveryNote[]>([]);
 
   const load = useCallback(async () => {
@@ -32,7 +36,7 @@ export default function SupplierDeliveryNotesPage() {
     createPrintColumn(supplierDeliveryNoteToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => (
         <AdminDocumentDeleteButton
           module="procurement"
@@ -48,8 +52,8 @@ export default function SupplierDeliveryNotesPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Supplier Delivery Notes"
-        description="Step 4 — inbound delivery proof; create from an approved LPO"
+        title={<BilingualText labelKey="procurement.pages.deliveryNotes.title" />}
+        description={<BilingualText labelKey="procurement.pages.deliveryNotes.description" />}
       />
       <Card>
         <CardContent className="pt-6">

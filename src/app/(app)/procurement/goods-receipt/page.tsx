@@ -5,19 +5,23 @@ import { Check, FileText } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BilingualText } from "@/components/i18n/field-label";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
 import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
 import { mrnToPrintable } from "@/lib/documents/mappers";
-import { ProcurementListHeader, mrnColumns } from "@/components/modules/procurement-shared";
+import { ProcurementListHeader, useMrnColumns } from "@/components/modules/procurement-shared";
 import { MrnToInvoiceDialog } from "@/components/procurement/mrn-to-invoice-dialog";
 import { MrnPostDialog } from "@/components/procurement/mrn-post-dialog";
 import { fetchMaterialReceiptNotes, fetchPurchaseOrders } from "@/lib/data/procurement";
 import type { LineItem, MaterialReceiptNote, PurchaseOrder } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 
 export default function MaterialReceiptNotesPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { t, label } = useTranslations();
+  const mrnColumns = useMrnColumns();
   const [rows, setRows] = useState<MaterialReceiptNote[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [postOpen, setPostOpen] = useState(false);
@@ -47,7 +51,7 @@ export default function MaterialReceiptNotesPage() {
     createPrintColumn(mrnToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => {
         const mrn = row.original;
         if (mrn.status !== "draft") {
@@ -62,8 +66,8 @@ export default function MaterialReceiptNotesPage() {
                     setInvoiceOpen(true);
                   }}
                 >
-                  <FileText className="mr-1 h-3 w-3" />
-                  Supplier invoice
+                  <FileText className="me-1 h-3 w-3" />
+                  {t("procurement.pages.goodsReceipt.supplierInvoice")}
                 </Button>
               )}
               <AdminDocumentDeleteButton
@@ -85,8 +89,8 @@ export default function MaterialReceiptNotesPage() {
                 setPostOpen(true);
               }}
             >
-              <Check className="mr-1 h-3 w-3" />
-              Post MRN
+              <Check className="me-1 h-3 w-3" />
+              {t("procurement.pages.goodsReceipt.postMrn")}
             </Button>
             <AdminDocumentDeleteButton
               module="procurement"
@@ -104,8 +108,8 @@ export default function MaterialReceiptNotesPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Material Receipt Notes (MRN)"
-        description="Step 5–6 — warehouse receipt and price updation; posting increases stock"
+        title={<BilingualText labelKey="procurement.pages.goodsReceipt.title" />}
+        description={<BilingualText labelKey="procurement.pages.goodsReceipt.description" />}
       />
       <Card>
         <CardContent className="pt-6">

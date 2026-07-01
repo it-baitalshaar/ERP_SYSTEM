@@ -1,25 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Shield } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { CustomerFormDialog } from "@/components/sales/customer-form-dialog";
+import { CustomerProductBlocksPanel } from "@/components/sales/customer-product-blocks-panel";
 import { AdminCustomerDeleteButton } from "@/components/sales/admin-customer-delete-button";
 import { SalesListHeader, formatAed } from "@/components/modules/sales-shared";
 import type { Customer } from "@/lib/types";
 import { fetchCustomers } from "@/lib/data/sales";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useAppStore } from "@/stores/app-store";
+import { CUSTOMER_PRODUCT_BLOCKS_FLAG } from "@/lib/sales/customer-blocks";
 
 export default function CustomersPage() {
   const { companyId } = useDocumentContext();
+  const blocksEnabled = useAppStore((s) => s.isFeatureEnabled(CUSTOMER_PRODUCT_BLOCKS_FLAG));
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [blocksCustomer, setBlocksCustomer] = useState<Customer | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +85,16 @@ export default function CustomersPage() {
             <Pencil className="mr-1 h-3 w-3" />
             Edit
           </Button>
+          {blocksEnabled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setBlocksCustomer(row.original)}
+            >
+              <Shield className="mr-1 h-3 w-3" />
+              Reservations
+            </Button>
+          )}
           <AdminCustomerDeleteButton
             customerId={row.original.id}
             companyId={companyId}
@@ -127,6 +142,15 @@ export default function CustomersPage() {
         customer={editing}
         onSaved={() => void load()}
       />
+
+      {blocksCustomer && (
+        <CustomerProductBlocksPanel
+          open={!!blocksCustomer}
+          onOpenChange={(o) => !o && setBlocksCustomer(null)}
+          customer={blocksCustomer}
+          companyId={companyId}
+        />
+      )}
     </div>
   );
 }

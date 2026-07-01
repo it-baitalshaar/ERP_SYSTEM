@@ -18,9 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
 import { SuperAdminPreviewMenus } from "@/components/layout/super-admin-preview-menus";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Badge } from "@/components/ui/badge";
 import { roles, useAppStore } from "@/stores/app-store";
 import { isSuperAdmin } from "@/lib/permissions";
+import { useTranslations } from "@/hooks/use-translations";
 
 const contextSelectClass =
   "h-9 w-[min(11rem,28vw)] shrink-0 [&>span]:line-clamp-1 [&>span]:text-left";
@@ -49,6 +51,7 @@ export function TopBar() {
     isPreviewActive,
     logout,
   } = useAppStore();
+  const { t } = useTranslations();
 
   const roleId = getEffectiveRoleId();
   const role = roles.find((r) => r.id === roleId);
@@ -82,7 +85,7 @@ export function TopBar() {
       {showPreviewBanner && (
         <div className="border-b bg-amber-500/10 px-3 py-1.5 text-center text-xs text-amber-900 dark:text-amber-200">
           <p className="truncate">
-            QA preview — sidebar shows{" "}
+            {t("common.previewBanner")}{" "}
             {previewUser
               ? `${previewUser.fullName} (${previewUser.roleName}${
                   previewUser.extraModules.length
@@ -90,7 +93,7 @@ export function TopBar() {
                     : ""
                 })`
               : role?.name ?? "selected role"}
-            . Your account remains Super Admin.
+            . {t("common.previewRemainSuper")}
           </p>
         </div>
       )}
@@ -116,7 +119,7 @@ export function TopBar() {
               }}
             >
               <SelectTrigger className={contextSelectClass}>
-                <SelectValue placeholder="Organization" />
+                <SelectValue placeholder={t("common.organization")} />
               </SelectTrigger>
               <SelectContent align="start">
                 {userOrgs.map((o) => (
@@ -134,13 +137,13 @@ export function TopBar() {
               void setCompany(id);
             }}
           >
-            <SelectTrigger className={contextSelectClass} title="Department or shop filter">
-              <SelectValue placeholder="Dept / Shop" />
+            <SelectTrigger className={contextSelectClass} title={t("common.deptShop")}>
+              <SelectValue placeholder={t("common.deptShop")} />
             </SelectTrigger>
             <SelectContent align="start">
               {orgCompanies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.unit_type === "shop" ? "Shop: " : "Dept: "}
+                  {c.unit_type === "shop" ? t("common.shopPrefix") : t("common.deptPrefix")}{" "}
                   {c.name}
                 </SelectItem>
               ))}
@@ -152,8 +155,8 @@ export function TopBar() {
               value={currentSiteKind === "branch" ? currentBranchId : undefined}
               onValueChange={(id) => setBranch(id)}
             >
-              <SelectTrigger className={contextSelectClass} title="Branch for documents and numbering">
-                <SelectValue placeholder="Branch" />
+              <SelectTrigger className={contextSelectClass} title={t("common.branch")}>
+                <SelectValue placeholder={t("common.branch")} />
               </SelectTrigger>
               <SelectContent align="start">
                 {companyBranches.map((b) => (
@@ -171,7 +174,7 @@ export function TopBar() {
               onValueChange={(id) => setWarehouse(id)}
             >
               <SelectTrigger className={contextSelectClass}>
-                <SelectValue placeholder="Warehouse" />
+                <SelectValue placeholder={t("common.warehouse")} />
               </SelectTrigger>
               <SelectContent align="start">
                 {companyWarehouses.map((w) => (
@@ -186,10 +189,11 @@ export function TopBar() {
 
         <div className="relative hidden w-52 shrink-0 xl:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Global search..." className="h-9 pl-8" />
+          <Input placeholder={t("common.globalSearch")} className="h-9 pl-8" />
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          <LanguageSwitcher />
           <Button variant="ghost" size="icon" className="relative shrink-0">
             <Bell className="h-5 w-5" />
             <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px]">3</Badge>
@@ -222,8 +226,8 @@ export function TopBar() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push("/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                Account settings
+                <Settings className="me-2 h-4 w-4" />
+                {t("common.accountSettings")}
               </DropdownMenuItem>
               <SuperAdminPreviewMenus />
               <DropdownMenuSeparator />
@@ -233,8 +237,8 @@ export function TopBar() {
                   router.push("/login");
                 }}
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
+                <LogOut className="me-2 h-4 w-4" />
+                {t("common.signOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

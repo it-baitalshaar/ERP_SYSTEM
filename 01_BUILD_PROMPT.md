@@ -793,6 +793,7 @@ All **user-requested extras** and major post-PRD capabilities are tracked in:
 - Document templates: classic LPO + standard quote; Admin → Document Templates  
 - Below-cost sale warning (`feat_below_cost_warning`)  
 - Product warehouse availability (`feat_product_warehouse_availability`) on sales product pick  
+- Partial sales delivery (`feat_partial_sales_delivery`) + customer reservations (`feat_customer_product_blocks`)  
 - Print → OS print dialog (`printHtmlInFrame`)  
 - 3-way match, admin delete, WhatsApp share  
 
@@ -812,6 +813,38 @@ All **user-requested extras** and major post-PRD capabilities are tracked in:
 
 - **Below-cost warning:** `feat_below_cost_warning` in Feature Management; warns when sell price &lt; `items.cost_price` on quotation/order/invoice (`below-cost.ts`, server `assertSalesLinesNotBelowCost`).
 - **Warehouse availability:** `feat_product_warehouse_availability` in Feature Management; shows per-warehouse stock inline and in a details dialog when picking products on quotation/order/invoice (`warehouse-availability.ts`, `product-warehouse-availability.tsx`).
+- **Partial delivery:** `feat_partial_sales_delivery` — partial payment on invoice, delivery note limited to paid minus already delivered (`sales-delivery.ts`, `partial-*-dialog.tsx`).
+- **Customer reservations:** `feat_customer_product_blocks` — hold qty for a customer until date; visible on stock + sales form; history after expiry; WhatsApp reminder (`customer-blocks.ts`, `customer-product-blocks-panel.tsx`).
+
+---
+
+# 4.U Procurement workflow builder
+
+- **What:** Admin configures the purchase-cycle steps (MR → LPO → proforma → MRN → payment), enables/disables gates, assigns approvers (admin / role / user). Mindmap on admin and procurement pages.
+- **Flag:** `feat_procurement_workflow` (Feature Management + toggle on workflow admin page)
+- **Key files:** `src/lib/workflows/procurement.ts`, `src/lib/server/workflows.ts`, `src/app/api/admin/workflows/route.ts`, `src/app/(app)/admin/workflows/procurement/page.tsx`, `src/app/(app)/procurement/workflow/page.tsx`, `src/components/workflows/workflow-mindmap.tsx`
+- **Migration:** `0016_procurement_workflow.sql` (`company_workflow_settings`)
+- **Wired on:** MR/LPO submit auto-skips approval when step disabled; approve actions check assigned approver when flag is on
+
+---
+
+# 4.V Partial sales delivery & customer reservations
+
+- **What:** Record partial payment on a tax invoice (e.g. 300 of 1000 pcs paid), create delivery notes only for paid-and-not-yet-delivered qty, optionally reserve undelivered balance for that customer until a date. Reservations show on stock levels, sales product pick, and customer history; WhatsApp reminder for upcoming expiry.
+- **Flags:** `feat_partial_sales_delivery`, `feat_customer_product_blocks` (Feature Management)
+- **Key files:**
+
+| Path | Role |
+|------|------|
+| `supabase/migrations/0017_sales_partial_delivery_blocks.sql` | `paid_line_qty`, `customer_product_blocks` |
+| `src/lib/server/sales-delivery.ts` | Fulfillment math, partial pay, partial DN validation |
+| `src/lib/server/customer-blocks.ts` | CRUD, expiry, block-other-customer assert |
+| `src/components/sales/partial-payment-dialog.tsx` | Record paid qty + optional reservation |
+| `src/components/sales/partial-delivery-dialog.tsx` | DN for deliverable qty |
+| `src/components/sales/customer-product-blocks-panel.tsx` | Customer reservations + history + WhatsApp |
+| `src/app/(app)/inventory/stock-levels/page.tsx` | Customer holds column |
+
+- **Wired on:** Tax invoices list (partial pay / partial DN actions), customers page (Reservations tab), stock levels, sales document form (reservation hints)
 
 ---
 

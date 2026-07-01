@@ -102,6 +102,49 @@ export async function getSupplierOrThrow(db: Db, companyId: string, supplierId: 
   return data;
 }
 
+/** Resolve branch for purchase payments (required for document-scope list filtering). */
+export async function resolvePurchasePaymentBranchId(
+  db: Db,
+  companyId: string,
+  input: {
+    branch_id?: string | null;
+    supplier_invoice_id?: string | null;
+    purchase_order_id?: string | null;
+  }
+): Promise<string | null> {
+  if (input.branch_id) return String(input.branch_id);
+
+  if (input.supplier_invoice_id) {
+    const { data } = await db
+      .from("supplier_invoices")
+      .select("branch_id")
+      .eq("id", input.supplier_invoice_id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (data?.branch_id) return String(data.branch_id);
+  }
+
+  if (input.purchase_order_id) {
+    const { data } = await db
+      .from("purchase_orders")
+      .select("branch_id")
+      .eq("id", input.purchase_order_id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (data?.branch_id) return String(data.branch_id);
+  }
+
+  const { data: branch } = await db
+    .from("branches")
+    .select("id")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return branch?.id ? String(branch.id) : null;
+}
+
 function supplierJoin(row: Record<string, unknown>): { name: string; phone?: string } {
   const s = row.suppliers as { name?: string; phone?: string } | null;
   return {

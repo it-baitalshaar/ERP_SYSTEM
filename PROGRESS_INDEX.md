@@ -1,5 +1,5 @@
 # ERP Build — Progress Index
-Last updated: 2026-06-26 by Cursor Agent
+Last updated: 2026-07-01 by Cursor Agent
 
 ## 1. Status Snapshot
 - Phase: 2 — Supabase + Sales + Procurement + Inventory core wired
@@ -13,8 +13,8 @@ Last updated: 2026-06-26 by Cursor Agent
 | Module | Route | Status | Notes |
 |---|---|---|---|
 | Inventory (items, stock, movements) | /inventory/* | in-progress | UOM catalog; cost/sale on items; MRN updates stock + pricing |
-| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Below-cost warning; warehouse availability on product pick |
-| Procurement (full purchase cycle) | /procurement/* | in-progress | LPO variance; linked purchase payments |
+| Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Partial pay/DN; customer product reservations + stock holds |
+| Procurement (full purchase cycle) | /procurement/* | in-progress | i18n EN/AR/both on procurement + top bar language switch |
 | Document print / PDF | cross-module | done | Templates + Windows print dialog |
 | Admin migrations (Focus staging) | /admin/migrations | done | View focus-data-fetch runs, catalog, raw samples |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
@@ -24,12 +24,15 @@ Last updated: 2026-06-26 by Cursor Agent
 | (other modules) | … | shell / coming-soon | Finance, transfers, etc. |
 
 ## 3. Feature Flags Implemented
+- [x] UI language modes (EN / AR / bilingual) — top bar; persisted in Zustand
 - [x] Business-line defaults (`src/lib/feature-flags.ts`)
 - [x] Admin toggles → `feature_flags` table (`/admin/features`)
 - [x] Sidebar: flags + role permissions + `user_module_permissions`
 - [x] Super Admin: full nav, all flags treated enabled
 - [x] `feat_below_cost_warning` — below purchase cost on sales docs
-- [x] `feat_product_warehouse_availability` — warehouse stock on sales product pick
+- [x] `feat_procurement_workflow` — admin workflow builder + process map
+- [x] `feat_partial_sales_delivery` — partial payment + delivery note for paid qty
+- [x] `feat_customer_product_blocks` — reserve stock per customer until date + WhatsApp reminder
 - [x] `feat_batch_tracking`, `feat_customer_portal`, `feat_e_invoicing` (defs in mock-data)
 
 ## 4. RBAC Implemented
@@ -56,8 +59,9 @@ Last updated: 2026-06-26 by Cursor Agent
 - Finance / GL integration
 
 ## 7. Next Session Should Start With
-- Apply `0014_focus_raw_staging.sql`; run `focus-data-fetch` explore + sync on Focus server.
-- Map `focus_raw_batches` → ERP masters (customers, items, suppliers).
+- Extend i18n to Sales + Inventory modules (same `FieldLabel` / `useTranslations` pattern).
+- Apply migrations `0015`–`0017` on Supabase if not yet run.
+- Enable `feat_partial_sales_delivery` + `feat_customer_product_blocks` in Feature Management; test partial pay → DN → reservation flow.
 
 ## 8. Supabase Schema Status
 | Migration | Status |
@@ -70,3 +74,6 @@ Last updated: 2026-06-26 by Cursor Agent
 | 0013_document_templates.sql | ready — company print template settings |
 | 0014_focus_raw_staging.sql | ready — Focus SQL raw import staging (focus-data-fetch) |
 | 0015_procurement_branch_scope.sql | ready — branch_id on proforma, delivery, MRN |
+| 0016_procurement_workflow.sql | ready — company_workflow_settings |
+| 0017_sales_partial_delivery_blocks.sql | ready — partial pay, customer product blocks |
+| 0018_purchase_payments_branch_backfill.sql | ready — fix payments missing branch_id |

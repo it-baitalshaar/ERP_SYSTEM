@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ProcurementListHeader, proformaColumns } from "@/components/modules/procurement-shared";
+import {
+  ProcurementListHeader,
+  useProformaColumns,
+} from "@/components/modules/procurement-shared";
+import { BilingualText } from "@/components/i18n/field-label";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
@@ -11,9 +15,12 @@ import { proformaToPrintable } from "@/lib/documents/mappers";
 import { fetchProformaInvoices } from "@/lib/data/procurement";
 import type { ProformaInvoice } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 
 export default function ProformaInvoicesPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { label } = useTranslations();
+  const proformaColumns = useProformaColumns();
   const [rows, setRows] = useState<ProformaInvoice[]>([]);
 
   const load = useCallback(async () => {
@@ -29,7 +36,7 @@ export default function ProformaInvoicesPage() {
     createPrintColumn(proformaToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => (
         <AdminDocumentDeleteButton
           module="procurement"
@@ -45,8 +52,8 @@ export default function ProformaInvoicesPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Proforma Invoices"
-        description="Step 3 — supplier proforma; create from an approved LPO"
+        title={<BilingualText labelKey="procurement.pages.proforma.title" />}
+        description={<BilingualText labelKey="procurement.pages.proforma.description" />}
       />
       <Card>
         <CardContent className="pt-6">

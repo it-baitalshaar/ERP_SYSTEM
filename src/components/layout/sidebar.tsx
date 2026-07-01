@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { navigation } from "@/lib/navigation";
 import { canViewModule, isAdminRole, isSuperAdmin } from "@/lib/permissions";
 import { useAppStore } from "@/stores/app-store";
+import { useTranslations } from "@/hooks/use-translations";
 
 interface SidebarProps {
   mobile?: boolean;
@@ -26,6 +27,7 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
     getEffectivePermissions,
     getCurrentCompany,
   } = useAppStore();
+  const { t } = useTranslations();
 
   const collapsed = !mobile && sidebarCollapsed;
   const roleId = getEffectiveRoleId();
@@ -61,7 +63,7 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
       <div className={cn("flex h-14 items-center border-b border-sidebar-border px-4", collapsed && "justify-center px-2")}>
         {!collapsed && (
           <Link href="/dashboard" className="font-semibold text-white" onClick={onNavigate}>
-            Bait Al Shaar ERP
+            {t("app.title")}
           </Link>
         )}
         {!mobile && (
@@ -81,18 +83,19 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
             <div key={group.key}>
               {!collapsed && (
                 <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/60">
-                  {group.label}
+                  {t(`nav.groups.${group.key}`, group.label)}
                 </p>
               )}
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = pathname === item.href;
+                  const itemLabel = t(`nav.items.${item.key}`, item.label);
                   return (
                     <li key={item.key}>
                       <Link
                         href={item.href}
                         onClick={onNavigate}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? itemLabel : undefined}
                         className={cn(
                           "flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                           active
@@ -104,7 +107,7 @@ export function Sidebar({ mobile, onNavigate }: SidebarProps) {
                         <NavIcon name={item.icon} className="h-4 w-4 shrink-0" />
                         {!collapsed && (
                           <span className="truncate">
-                            {item.label}
+                            {itemLabel}
                             {item.coming_soon && (
                               <span className="ml-1 text-[10px] text-warning">•</span>
                             )}

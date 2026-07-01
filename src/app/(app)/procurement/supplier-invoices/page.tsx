@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BilingualText } from "@/components/i18n/field-label";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
 import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
 import { supplierInvoiceToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
-  supplierInvoiceColumns,
+  useSupplierInvoiceColumns,
 } from "@/components/modules/procurement-shared";
 import { SupplierInvoiceFormDialog } from "@/components/procurement/supplier-invoice-form-dialog";
 import { SupplierInvoicePostDialog } from "@/components/procurement/supplier-invoice-post-dialog";
@@ -31,10 +32,13 @@ import {
 import type { ThreeWayMatchResult } from "@/lib/procurement/three-way-match";
 import type { Supplier, SupplierInvoice } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 import { toast } from "sonner";
 
 export default function SupplierInvoicesPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { t, label } = useTranslations();
+  const supplierInvoiceColumns = useSupplierInvoiceColumns();
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -57,26 +61,9 @@ export default function SupplierInvoicesPage() {
     void load();
   }, [load]);
 
-  const runAction = async (id: string, action: string, success: string) => {
-    setActing(id);
-    const result = await procurementAction<SupplierInvoice>(
-      "supplier_invoices",
-      companyId,
-      id,
-      action
-    );
-    setActing(null);
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success(success);
-    void load();
-  };
-
   const openMatch = async (inv: SupplierInvoice) => {
     if (!inv.mrn_id) {
-      toast.message("This invoice is not linked to an MRN");
+      toast.message(t("procurement.pages.supplierInvoices.notLinkedMrn"));
       return;
     }
     setSelectedInvoice(inv);
@@ -96,7 +83,7 @@ export default function SupplierInvoicesPage() {
     createPrintColumn(supplierInvoiceToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => {
         const inv = row.original;
         const busy = acting === inv.id;
@@ -111,8 +98,8 @@ export default function SupplierInvoicesPage() {
                     disabled={busy}
                     onClick={() => void openMatch(inv)}
                   >
-                    <Scale className="mr-1 h-3 w-3" />
-                    3-way
+                    <Scale className="me-1 h-3 w-3" />
+                    {t("procurement.pages.supplierInvoices.threeWay")}
                   </Button>
                 )}
                 <Button
@@ -123,14 +110,14 @@ export default function SupplierInvoicesPage() {
                     setPostOpen(true);
                   }}
                 >
-                  <Check className="mr-1 h-3 w-3" />
-                  Post
+                  <Check className="me-1 h-3 w-3" />
+                  {t("procurement.pages.supplierInvoices.post")}
                 </Button>
               </>
             )}
             {inv.status === "posted" && !inv.is_paid && (
-              <span className="text-xs text-muted-foreground self-center px-1">
-                Pay via Purchase Payments
+              <span className="self-center px-1 text-xs text-muted-foreground">
+                {t("procurement.pages.supplierInvoices.payViaPayments")}
               </span>
             )}
             <AdminDocumentDeleteButton
@@ -149,12 +136,12 @@ export default function SupplierInvoicesPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Supplier Invoices"
-        description="Step 7 — supplier tax invoice; 3-way match vs LPO and MRN"
+        title={<BilingualText labelKey="procurement.pages.supplierInvoices.title" />}
+        description={<BilingualText labelKey="procurement.pages.supplierInvoices.description" />}
         action={
           <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New invoice
+            <Plus className="me-2 h-4 w-4" />
+            {t("procurement.pages.supplierInvoices.new")}
           </Button>
         }
       />
@@ -182,14 +169,16 @@ export default function SupplierInvoicesPage() {
       />
 
       <Dialog open={matchOpen} onOpenChange={setMatchOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>3-way match — {selectedInvoice?.number}</DialogTitle>
+            <DialogTitle>
+              {t("procurement.pages.supplierInvoices.threeWayTitle")} — {selectedInvoice?.number}
+            </DialogTitle>
           </DialogHeader>
           {matchData ? (
             <ThreeWayMatchPanel match={matchData} />
           ) : (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
           )}
         </DialogContent>
       </Dialog>

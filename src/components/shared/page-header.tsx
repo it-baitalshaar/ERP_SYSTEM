@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ComingSoonBadge } from "@/components/shared/coming-soon-badge";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   comingSoon?: boolean;
   action?: React.ReactNode;
   className?: string;

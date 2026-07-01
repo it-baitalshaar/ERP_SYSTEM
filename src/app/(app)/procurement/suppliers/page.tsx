@@ -6,15 +6,18 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BilingualText } from "@/components/i18n/field-label";
 import { DataTable } from "@/components/shared/data-table";
 import { ProcurementListHeader, formatAed } from "@/components/modules/procurement-shared";
 import { SupplierFormDialog } from "@/components/procurement/supplier-form-dialog";
+import { useTranslations } from "@/hooks/use-translations";
 import { fetchSuppliers } from "@/lib/data/procurement";
 import type { Supplier } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
 
 export default function SuppliersPage() {
   const { companyId } = useDocumentContext();
+  const { t, label } = useTranslations();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -32,31 +35,43 @@ export default function SuppliersPage() {
   }, [load]);
 
   const columns: ColumnDef<Supplier>[] = [
-    { accessorKey: "name", header: "Supplier" },
+    {
+      accessorKey: "name",
+      header: () => label("procurement.fields.supplier"),
+    },
     {
       accessorKey: "classification",
-      header: "Class",
+      header: () => label("procurement.fields.class"),
       cell: ({ row }) => (
         <Badge variant="secondary">{row.original.classification.toUpperCase()}</Badge>
       ),
     },
-    { accessorKey: "phone", header: "Phone" },
-    { accessorKey: "payment_terms", header: "Terms" },
-    { accessorKey: "credit_days", header: "Credit days" },
+    {
+      accessorKey: "phone",
+      header: () => label("procurement.fields.phone"),
+    },
+    {
+      accessorKey: "payment_terms",
+      header: () => label("procurement.fields.terms"),
+    },
+    {
+      accessorKey: "credit_days",
+      header: () => label("procurement.fields.creditDays"),
+    },
     {
       accessorKey: "outstanding_balance",
-      header: "Balance due",
+      header: () => label("procurement.fields.balanceDue"),
       cell: ({ row }) => formatAed(row.original.outstanding_balance ?? 0),
     },
     {
       accessorKey: "is_blocked",
-      header: "Status",
+      header: () => label("procurement.fields.status"),
       cell: ({ row }) =>
         row.original.is_blocked ? (
-          <Badge variant="destructive">Blocked</Badge>
+          <Badge variant="destructive">{t("common.blocked")}</Badge>
         ) : (
           <Badge variant="outline" className="border-success/30 text-success">
-            Active
+            {t("common.active")}
           </Badge>
         ),
     },
@@ -72,8 +87,8 @@ export default function SuppliersPage() {
             setDialogOpen(true);
           }}
         >
-          <Pencil className="mr-1 h-3 w-3" />
-          Edit
+          <Pencil className="me-1 h-3 w-3" />
+          {t("common.edit")}
         </Button>
       ),
     },
@@ -82,9 +97,13 @@ export default function SuppliersPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Suppliers"
+        title={<BilingualText labelKey="procurement.pages.suppliers.title" />}
         description={
-          loading ? "Loading…" : "Vendor master — payment terms, currency, classification"
+          loading ? (
+            t("common.loading")
+          ) : (
+            <BilingualText labelKey="procurement.pages.suppliers.description" />
+          )
         }
         action={
           <Button
@@ -93,8 +112,8 @@ export default function SuppliersPage() {
               setDialogOpen(true);
             }}
           >
-            <Plus className="mr-2 h-4 w-4" />
-            New supplier
+            <Plus className="me-2 h-4 w-4" />
+            {t("procurement.pages.suppliers.new")}
           </Button>
         }
       />
@@ -104,7 +123,7 @@ export default function SuppliersPage() {
             columns={columns}
             data={suppliers}
             searchKey="name"
-            searchPlaceholder="Search suppliers..."
+            searchPlaceholder={t("procurement.pages.suppliers.search")}
           />
         </CardContent>
       </Card>

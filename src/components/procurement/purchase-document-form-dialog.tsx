@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FieldLabel, BilingualText } from "@/components/i18n/field-label";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "@/hooks/use-translations";
 import { documentTotal } from "@/lib/sales/calculations";
 import { createMaterialRequest, createPurchaseOrder } from "@/lib/data/procurement";
 import { getProcurementCatalog } from "@/lib/procurement/catalog";
@@ -47,11 +48,6 @@ const emptyLine = (): LineItem => ({
   vat_pct: 5,
 });
 
-const kindLabels: Record<PurchaseDocumentKind, string> = {
-  material_request: "Material request",
-  lpo: "LPO (purchase order)",
-};
-
 export function PurchaseDocumentFormDialog({
   open,
   onOpenChange,
@@ -61,6 +57,7 @@ export function PurchaseDocumentFormDialog({
   suppliers,
   onCreated,
 }: PurchaseDocumentFormDialogProps) {
+  const { t } = useTranslations();
   const [catalog, setCatalog] = useState<Item[]>([]);
   const activeSuppliers = useMemo(
     () => suppliers.filter((s) => !s.is_blocked),
@@ -73,6 +70,19 @@ export function PurchaseDocumentFormDialog({
   const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
   const wasOpen = useRef(false);
+
+  const kindTitleKey =
+    kind === "material_request"
+      ? "procurement.documents.newMaterialRequest"
+      : "procurement.documents.newLpo";
+  const kindCreatedKey =
+    kind === "material_request"
+      ? "procurement.documents.createdMaterialRequest"
+      : "procurement.documents.createdLpo";
+  const kindCreateKey =
+    kind === "material_request"
+      ? "procurement.documents.materialRequest"
+      : "procurement.documents.lpo";
 
   useEffect(() => {
     if (open) void getProcurementCatalog(companyId).then(setCatalog);
@@ -115,11 +125,11 @@ export function PurchaseDocumentFormDialog({
 
   const handleSave = async () => {
     if (!branchId) {
-      toast.error("Select a branch in the top bar");
+      toast.error(t("common.selectBranchTopBar"));
       return;
     }
     if (kind === "lpo" && !supplierId) {
-      toast.error("Select a supplier");
+      toast.error(t("common.selectSupplier"));
       return;
     }
 
@@ -148,7 +158,7 @@ export function PurchaseDocumentFormDialog({
       return;
     }
 
-    toast.success(`${kindLabels[kind]} created`);
+    toast.success(t(kindCreatedKey));
     onCreated();
     onOpenChange(false);
   };
@@ -157,21 +167,23 @@ export function PurchaseDocumentFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New {kindLabels[kind]}</DialogTitle>
+          <DialogTitle>
+            <BilingualText labelKey={kindTitleKey} />
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {kind === "lpo" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Supplier</Label>
+                <FieldLabel labelKey="procurement.fields.supplier" />
                 <Select
                   value={supplierId || undefined}
                   onValueChange={setSupplierId}
                   disabled={activeSuppliers.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select supplier" />
+                    <SelectValue placeholder={t("procurement.placeholders.selectSupplier")} />
                   </SelectTrigger>
                   <SelectContent>
                     {activeSuppliers.map((s) => (
@@ -183,7 +195,7 @@ export function PurchaseDocumentFormDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Payment timing</Label>
+                <FieldLabel labelKey="procurement.fields.paymentTiming" />
                 <Select
                   value={paymentTerms}
                   onValueChange={(v) => setPaymentTerms(v as PurchasePaymentTerms)}
@@ -192,9 +204,9 @@ export function PurchaseDocumentFormDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="advance">Advance</SelectItem>
-                    <SelectItem value="on_delivery">On delivery</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
+                    <SelectItem value="advance">{t("paymentTerms.advance")}</SelectItem>
+                    <SelectItem value="on_delivery">{t("paymentTerms.on_delivery")}</SelectItem>
+                    <SelectItem value="credit">{t("paymentTerms.credit")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -202,34 +214,34 @@ export function PurchaseDocumentFormDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <FieldLabel htmlFor="notes" labelKey="procurement.fields.notes" />
             <Input
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
+              placeholder={t("common.optional")}
             />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Line items</Label>
+              <FieldLabel labelKey="procurement.fields.lineItems" className="mb-0" />
               <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                <Plus className="mr-1 h-3 w-3" />
-                Add line
+                <Plus className="me-1 h-3 w-3" />
+                {t("procurement.documents.addLine")}
               </Button>
             </div>
 
             {lines.map((line, index) => (
               <div key={index} className="grid gap-2 rounded-md border p-3 md:grid-cols-6">
                 <div className="md:col-span-2 space-y-1">
-                  <Label className="text-xs">Product</Label>
+                  <FieldLabel className="text-xs" labelKey="procurement.fields.product" />
                   <Select
                     value={line.item_id ? line.item_id : undefined}
                     onValueChange={(id) => pickCatalogItem(index, id)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pick from catalog" />
+                      <SelectValue placeholder={t("procurement.placeholders.pickCatalog")} />
                     </SelectTrigger>
                     <SelectContent>
                       {catalog.map((item) => (
@@ -240,13 +252,13 @@ export function PurchaseDocumentFormDialog({
                     </SelectContent>
                   </Select>
                   <Input
-                    placeholder="Or type item name"
+                    placeholder={t("procurement.placeholders.typeItemName")}
                     value={line.item_name}
                     onChange={(e) => updateLine(index, { item_name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Qty</Label>
+                  <FieldLabel className="text-xs" labelKey="procurement.fields.qty" />
                   <Input
                     type="number"
                     min={0.01}
@@ -256,14 +268,14 @@ export function PurchaseDocumentFormDialog({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">UOM</Label>
+                  <FieldLabel className="text-xs" labelKey="procurement.fields.uom" />
                   <Input
                     value={line.uom}
                     onChange={(e) => updateLine(index, { uom: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Unit price</Label>
+                  <FieldLabel className="text-xs" labelKey="procurement.fields.unitPrice" />
                   <Input
                     type="number"
                     min={0}
@@ -289,16 +301,18 @@ export function PurchaseDocumentFormDialog({
           </div>
 
           <div className="flex justify-end text-sm font-medium">
-            Est. total (incl. VAT): AED {total.toLocaleString()}
+            {t("procurement.documents.estTotalInclVat")} AED {total.toLocaleString()}
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={() => void handleSave()} disabled={saving}>
-            {saving ? "Creating…" : `Create ${kindLabels[kind]}`}
+            {saving
+              ? t("common.creating")
+              : `${t("common.create")} ${t(kindCreateKey)}`}
           </Button>
         </DialogFooter>
       </DialogContent>

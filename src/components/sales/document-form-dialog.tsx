@@ -39,9 +39,11 @@ import {
   createQuotation,
   createSalesOrder,
   createTaxInvoice,
+  fetchCustomerProductBlocks,
 } from "@/lib/data/sales";
 import { fetchStockLevels } from "@/lib/data/inventory";
-import type { Customer, Item, LineItem, StockLevelRow } from "@/lib/types";
+import { CUSTOMER_PRODUCT_BLOCKS_FLAG } from "@/lib/sales/customer-blocks";
+import type { Customer, CustomerProductBlock, Item, LineItem, StockLevelRow } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 
@@ -88,8 +90,12 @@ export function DocumentFormDialog({
   const warehouseAvailabilityEnabled = useAppStore((s) =>
     s.isFeatureEnabled(PRODUCT_WAREHOUSE_AVAILABILITY_FLAG)
   );
+  const customerBlocksEnabled = useAppStore((s) =>
+    s.isFeatureEnabled(CUSTOMER_PRODUCT_BLOCKS_FLAG)
+  );
   const [catalog, setCatalog] = useState<Item[]>([]);
   const [stockLevels, setStockLevels] = useState<StockLevelRow[]>([]);
+  const [activeBlocks, setActiveBlocks] = useState<CustomerProductBlock[]>([]);
   const activeCustomers = useMemo(
     () => customers.filter((c) => !c.is_blocked),
     [customers]
@@ -110,7 +116,12 @@ export function DocumentFormDialog({
     } else {
       setStockLevels([]);
     }
-  }, [open, companyId, warehouseAvailabilityEnabled]);
+    if (customerBlocksEnabled) {
+      void fetchCustomerProductBlocks(companyId, { activeOnly: true }).then(setActiveBlocks);
+    } else {
+      setActiveBlocks([]);
+    }
+  }, [open, companyId, warehouseAvailabilityEnabled, customerBlocksEnabled]);
 
   const stockByItem = useMemo(
     () => (warehouseAvailabilityEnabled ? indexStockByItem(stockLevels) : new Map()),
@@ -339,6 +350,38 @@ export function DocumentFormDialog({
                         uom={line.uom}
                         warehouses={stockByItem.get(line.item_id) ?? []}
                       />
+                    )}
+                    {customerBlocksEnabled && line.item_id && customerId && (
+                      <>
+                        {activeBlocks
+                          .filter(
+                            (b) =>
+                              b.item_id === line.item_id && b.customer_id !== customerId
+                          )
+                          .map((b) => (
+                            <p
+                              key={b.id}
+                              className="text-xs text-amber-700 dark:text-amber-300"
+                            >
+                              Reserved for {b.customer_name}: {b.qty} until{" "}
+                              {new Date(b.blocked_until).toLocaleDateString()}
+                            </p>
+                          ))}
+                        {activeBlocks
+                          .filter(
+                            (b) =>
+                              b.item_id === line.item_id && b.customer_id === customerId
+                          )
+                          .map((b) => (
+                            <p
+                              key={b.id}
+                              className="text-xs text-emerald-700 dark:text-emerald-300"
+                            >
+                              Your reservation: {b.qty} until{" "}
+                              {new Date(b.blocked_until).toLocaleDateString()}
+                            </p>
+                          ))}
+                      </>
                     )}
                   </div>
                   <div className="space-y-1">

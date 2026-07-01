@@ -12,7 +12,13 @@ import { createPrintColumn } from "@/components/documents/document-print-column"
 import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
 import { taxInvoiceToPrintable } from "@/lib/documents/mappers";
 import { SalesListHeader, invoiceColumns } from "@/components/modules/sales-shared";
+import { PartialDeliveryDialog } from "@/components/sales/partial-delivery-dialog";
+import { PartialPaymentDialog } from "@/components/sales/partial-payment-dialog";
 import { fetchCustomers, fetchTaxInvoices, salesAction } from "@/lib/data/sales";
+import {
+  CUSTOMER_PRODUCT_BLOCKS_FLAG,
+  PARTIAL_SALES_DELIVERY_FLAG,
+} from "@/lib/sales/customer-blocks";
 import type { Customer, TaxInvoice } from "@/lib/types";
 import { useAppStore } from "@/stores/app-store";
 import { useDocumentContext } from "@/hooks/use-document-context";
@@ -21,9 +27,14 @@ import { toast } from "sonner";
 export default function TaxInvoicesPage() {
   const { companyId, branchId } = useDocumentContext();
   const currentWarehouseId = useAppStore((s) => s.currentWarehouseId);
+  const partialDeliveryEnabled = useAppStore((s) =>
+    s.isFeatureEnabled(PARTIAL_SALES_DELIVERY_FLAG)
+  );
   const [invoices, setInvoices] = useState<TaxInvoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [partialDnInvoice, setPartialDnInvoice] = useState<TaxInvoice | null>(null);
+  const [partialPayInvoice, setPartialPayInvoice] = useState<TaxInvoice | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -82,17 +93,31 @@ export default function TaxInvoicesPage() {
                 size="sm"
                 variant="outline"
                 disabled={busy}
-                onClick={() =>
-                  void runAction(
-                    inv.id,
-                    "create_delivery_note",
-                    "Delivery note created — post it to deduct stock",
-                    { warehouse_id: currentWarehouseId || undefined }
-                  )
-                }
+                onClick={() => {
+                  if (partialDeliveryEnabled) {
+                    setPartialDnInvoice(inv);
+                  } else {
+                    void runAction(
+                      inv.id,
+                      "create_delivery_note",
+                      "Delivery note created — post it to deduct stock",
+                      { warehouse_id: currentWarehouseId || undefined }
+                    );
+                  }
+                }}
               >
                 <Truck className="mr-1 h-3 w-3" />
-                Delivery note
+                {partialDeliveryEnabled ? "Partial delivery" : "Delivery note"}
+              </Button>
+            )}
+            {inv.status === "posted" && partialDeliveryEnabled && !inv.is_paid && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setPartialPayInvoice(inv)}
+              >
+                Record partial pay
               </Button>
             )}
             {inv.status === "posted" && !inv.is_paid && (
@@ -151,6 +176,28 @@ export default function TaxInvoicesPage() {
         customers={customers}
         onCreated={() => void load()}
       />
+
+      {partialDnInvoice && (
+        <PartialDeliveryDialog
+          open={!!partialDnInvoice}
+          onOpenChange={(o) => !o && setPartialDnInvoice(null)}
+          invoice={partialDnInvoice}
+          companyId={companyId}
+          warehouseId={currentWarehouseId || undefined}
+          onCreated={() => void load()}
+        />
+      )}
+
+      {partialPayInvoice && partialDeliveryEnabled && (
+        <PartialPaymentDialog
+          open={!!partialPayInvoice}
+          onOpenChange={(o) => !o && setPartialPayInvoice(null)}
+          invoice={partialPayInvoice}
+          companyId={companyId}
+          warehouseId={currentWarehouseId || undefined}
+          onSaved={() => void load()}
+        />
+      )}
     </div>
   );
 }

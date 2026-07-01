@@ -17,6 +17,23 @@ import {
   salesOrderInsertPayload,
 } from "@/lib/server/sales";
 import { BelowCostError, assertSalesLinesNotBelowCost } from "@/lib/server/below-cost";
+import {
+  assertCustomerNotBlockedFromItem,
+  createCustomerProductBlock,
+  listCustomerProductBlocks,
+  markBlockReminderSent,
+  releaseCustomerProductBlock,
+} from "@/lib/server/customer-blocks";
+import { isCompanyFeatureEnabled } from "@/lib/server/feature-flags";
+import {
+  getInvoiceFulfillment,
+  recordPartialPayment,
+  validatePartialDeliveryLines,
+} from "@/lib/server/sales-delivery";
+import {
+  CUSTOMER_PRODUCT_BLOCKS_FLAG,
+  PARTIAL_SALES_DELIVERY_FLAG,
+} from "@/lib/sales/customer-blocks";
 import { postDeliveryNoteToInventory } from "@/lib/server/inventory";
 import { checkDocumentDelete, deleteDocument } from "@/lib/server/document-delete";
 import { checkCustomerDelete, deleteCustomer } from "@/lib/server/customer-delete";
@@ -24,6 +41,19 @@ import type { DocumentStatus, LineItem } from "@/lib/types";
 import { createAdminClientOrNull } from "@/utils/supabase/admin";
 import { randomUUID } from "crypto";
 import { documentScopeFilter, parseDocumentScopeQuery } from "@/lib/server/document-scope";
+
+async function assertLinesNotBlockedForCustomer(
+  db: NonNullable<ReturnType<typeof createAdminClientOrNull>>,
+  companyId: string,
+  customerId: string,
+  lines: LineItem[]
+): Promise<void> {
+  if (!(await isCompanyFeatureEnabled(db, companyId, CUSTOMER_PRODUCT_BLOCKS_FLAG))) return;
+  for (const line of lines) {
+    if (!line.item_id) continue;
+    await assertCustomerNotBlockedFromItem(db, companyId, customerId, line.item_id);
+  }
+}
 
 async function requireSession() {
   const token = await getSessionFromCookies();
@@ -94,6 +124,32 @@ export async function GET(request: Request) {
         .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ data: (data ?? []).map(mapDeliveryNote) });
+    }
+
+    if (resource === "invoice_fulfillment") {
+      const invoiceId = searchParams.get("invoiceId");
+      if (!invoiceId) {
+        return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+      }
+      const enforcePaid = await isCompanyFeatureEnabled(
+        db,
+        companyId,
+        PARTIAL_SALES_DELIVERY_FLAG
+      );
+      const data = await getInvoiceFulfillment(db, companyId, invoiceId, enforcePaid);
+      return NextResponse.json({ data });
+    }
+
+    if (resource === "customer_product_blocks") {
+      const customerId = searchParams.get("customerId") ?? undefined;
+      const itemId = searchParams.get("itemId") ?? undefined;
+      const activeOnly = searchParams.get("activeOnly") === "true";
+      const data = await listCustomerProductBlocks(db, companyId, {
+        customerId,
+        itemId,
+        activeOnly,
+      });
+      return NextResponse.json({ data });
     }
 
     return NextResponse.json({ error: "Unknown resource" }, { status: 400 });
@@ -191,6 +247,7 @@ export async function POST(request: Request) {
         lines,
         Boolean(body.acknowledge_below_cost)
       );
+      await assertLinesNotBlockedForCustomer(db, companyId, customerId, lines);
       const branchCode = await resolveBranchCode(db, branchId);
       const number = await nextDocumentNumber(db, "sales_orders", companyId, branchCode, "SO");
 
@@ -225,6 +282,7 @@ export async function POST(request: Request) {
         lines,
         Boolean(body.acknowledge_below_cost)
       );
+      await assertLinesNotBlockedForCustomer(db, companyId, customerId, lines);
       const branchCode = await resolveBranchCode(db, branchId);
       const number = await nextDocumentNumber(db, "tax_invoices", companyId, branchCode, "INV");
 
@@ -245,6 +303,42 @@ export async function POST(request: Request) {
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ data: mapTaxInvoice(data) });
+    }
+
+    if (resource === "customer_product_blocks") {
+      if (!(await isCompanyFeatureEnabled(db, companyId, CUSTOMER_PRODUCT_BLOCKS_FLAG))) {
+        return NextResponse.json({ error: "Customer product blocks feature is disabled" }, { status: 403 });
+      }
+
+      const customerId = String(body.customer_id ?? "");
+      const itemId = String(body.item_id ?? "");
+      const qty = Number(body.qty ?? 0);
+      const blockedUntil = String(body.blocked_until ?? "");
+
+      if (!customerId || !itemId || qty <= 0 || !blockedUntil) {
+        return NextResponse.json(
+          { error: "customer_id, item_id, qty, blocked_until required" },
+          { status: 400 }
+        );
+      }
+
+      await getCustomerOrThrow(db, companyId, customerId);
+
+      const data = await createCustomerProductBlock(db, {
+        company_id: companyId,
+        customer_id: customerId,
+        item_id: itemId,
+        qty,
+        blocked_until: blockedUntil,
+        reason: body.reason ? String(body.reason) : undefined,
+        invoice_id: body.invoice_id ? String(body.invoice_id) : undefined,
+        sales_order_id: body.sales_order_id ? String(body.sales_order_id) : undefined,
+        warehouse_id: body.warehouse_id ? String(body.warehouse_id) : undefined,
+        whatsapp_reminder: body.whatsapp_reminder !== false,
+        created_by: token.sub,
+      });
+
+      return NextResponse.json({ data });
     }
 
     return NextResponse.json({ error: "Unknown resource" }, { status: 400 });
@@ -522,6 +616,66 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ data: mapTaxInvoice(data) });
       }
 
+      if (action === "record_partial_payment") {
+        const partialEnabled = await isCompanyFeatureEnabled(
+          db,
+          companyId,
+          PARTIAL_SALES_DELIVERY_FLAG
+        );
+        if (!partialEnabled) {
+          return NextResponse.json({ error: "Partial sales delivery feature is disabled" }, { status: 403 });
+        }
+
+        const paidLines = (body.paid_lines as { item_id: string; qty_paid: number }[]) ?? [];
+        await recordPartialPayment(db, companyId, id, paidLines);
+
+        const blocksEnabled = await isCompanyFeatureEnabled(
+          db,
+          companyId,
+          CUSTOMER_PRODUCT_BLOCKS_FLAG
+        );
+        if (blocksEnabled && body.create_blocks) {
+          const { data: invoice } = await db
+            .from("tax_invoices")
+            .select("customer_id, lines, paid_line_qty")
+            .eq("id", id)
+            .eq("company_id", companyId)
+            .single();
+          if (invoice) {
+            const fulfillment = await getInvoiceFulfillment(db, companyId, id, true);
+            const blockedUntil = String(body.blocked_until ?? "");
+            const warehouseId = body.warehouse_id ? String(body.warehouse_id) : undefined;
+            if (blockedUntil) {
+              for (const line of fulfillment) {
+                const holdQty = line.undelivered_qty;
+                if (holdQty <= 0 || !line.item_id) continue;
+                await createCustomerProductBlock(db, {
+                  company_id: companyId,
+                  customer_id: String(invoice.customer_id),
+                  item_id: line.item_id,
+                  qty: holdQty,
+                  blocked_until: blockedUntil,
+                  reason: "Reserved for undelivered balance after partial payment",
+                  invoice_id: id,
+                  warehouse_id: warehouseId,
+                  whatsapp_reminder: body.whatsapp_reminder !== false,
+                  created_by: token.sub,
+                });
+              }
+            }
+          }
+        }
+
+        const { data, error } = await db
+          .from("tax_invoices")
+          .select("*, customers(name, phone)")
+          .eq("id", id)
+          .eq("company_id", companyId)
+          .single();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ data: mapTaxInvoice(data) });
+      }
+
       if (action === "create_delivery_note") {
         const { data: invoice, error: fetchError } = await db
           .from("tax_invoices")
@@ -537,10 +691,25 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: "Only posted invoices can have delivery notes" }, { status: 400 });
         }
 
+        const partialEnabled = await isCompanyFeatureEnabled(
+          db,
+          companyId,
+          PARTIAL_SALES_DELIVERY_FLAG
+        );
         const branchCode = await resolveBranchCode(db, invoice.branch_id);
         const number = await nextDocumentNumber(db, "delivery_notes", companyId, branchCode, "DN");
-        const lines = (invoice.lines as LineItem[]) ?? [];
         const warehouseId = body.warehouse_id ? String(body.warehouse_id) : null;
+
+        let deliveryLines: LineItem[];
+        if (partialEnabled && body.lines) {
+          const fulfillment = await getInvoiceFulfillment(db, companyId, id, true);
+          deliveryLines = validatePartialDeliveryLines(
+            fulfillment,
+            normalizeLines((body.lines as LineItem[]) ?? [])
+          );
+        } else {
+          deliveryLines = (invoice.lines as LineItem[]) ?? [];
+        }
 
         const { data, error } = await db
           .from("delivery_notes")
@@ -554,14 +723,28 @@ export async function PATCH(request: Request) {
             date: new Date().toISOString().slice(0, 10),
             status: "draft" satisfies DocumentStatus,
             lines: warehouseId
-              ? lines.map((l) => ({ ...l, warehouse_id: l.warehouse_id ?? warehouseId }))
-              : lines,
+              ? deliveryLines.map((l) => ({ ...l, warehouse_id: l.warehouse_id ?? warehouseId }))
+              : deliveryLines,
           })
           .select("*, tax_invoices(number, customers(name, phone))")
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
         return NextResponse.json({ data: mapDeliveryNote(data) });
+      }
+    }
+
+    if (resource === "customer_product_blocks") {
+      if (action === "release") {
+        const data = await releaseCustomerProductBlock(db, companyId, id);
+        return NextResponse.json({ data });
+      }
+
+      if (action === "mark_reminder_sent") {
+        await markBlockReminderSent(db, companyId, id);
+        const blocks = await listCustomerProductBlocks(db, companyId);
+        const block = blocks.find((b) => b.id === id);
+        return NextResponse.json({ data: block ?? null });
       }
     }
 

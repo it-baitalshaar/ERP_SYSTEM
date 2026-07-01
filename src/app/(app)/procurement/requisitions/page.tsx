@@ -19,14 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { BilingualText, FieldLabel } from "@/components/i18n/field-label";
 import { DataTable } from "@/components/shared/data-table";
 import { createPrintColumn } from "@/components/documents/document-print-column";
 import { AdminDocumentDeleteButton } from "@/components/documents/admin-document-delete-button";
 import { materialRequestToPrintable } from "@/lib/documents/mappers";
 import {
   ProcurementListHeader,
-  materialRequestColumns,
+  useMaterialRequestColumns,
 } from "@/components/modules/procurement-shared";
 import { PurchaseDocumentFormDialog } from "@/components/procurement/purchase-document-form-dialog";
 import {
@@ -36,10 +36,13 @@ import {
 } from "@/lib/data/procurement";
 import type { MaterialRequest, PurchasePaymentTerms, Supplier } from "@/lib/types";
 import { useDocumentContext } from "@/hooks/use-document-context";
+import { useTranslations } from "@/hooks/use-translations";
 import { toast } from "sonner";
 
 export default function MaterialRequestsPage() {
   const { companyId, branchId } = useDocumentContext();
+  const { t, label } = useTranslations();
+  const materialRequestColumns = useMaterialRequestColumns();
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,7 +65,7 @@ export default function MaterialRequestsPage() {
     void load();
   }, [load]);
 
-  const runAction = async (id: string, action: string, success: string) => {
+  const runAction = async (id: string, action: string, successKey: string) => {
     setActing(id);
     const result = await procurementAction<MaterialRequest>(
       "material_requests",
@@ -75,13 +78,13 @@ export default function MaterialRequestsPage() {
       toast.error(result.error);
       return;
     }
-    toast.success(success);
+    toast.success(t(successKey));
     void load();
   };
 
   const handleConvert = async () => {
     if (!convertMrId || !supplierId) {
-      toast.error("Select a supplier");
+      toast.error(t("common.selectSupplier"));
       return;
     }
     setActing(convertMrId);
@@ -97,7 +100,7 @@ export default function MaterialRequestsPage() {
       toast.error(result.error);
       return;
     }
-    toast.success("LPO created from material request");
+    toast.success(t("procurement.pages.materialRequests.lpoCreated"));
     setConvertOpen(false);
     void load();
   };
@@ -107,7 +110,7 @@ export default function MaterialRequestsPage() {
     createPrintColumn(materialRequestToPrintable),
     {
       id: "actions",
-      header: "Actions",
+      header: () => label("common.actions"),
       cell: ({ row }) => {
         const mr = row.original;
         const busy = acting === mr.id;
@@ -118,19 +121,23 @@ export default function MaterialRequestsPage() {
                 size="sm"
                 variant="outline"
                 disabled={busy}
-                onClick={() => void runAction(mr.id, "submit", "Submitted for approval")}
+                onClick={() =>
+                  void runAction(mr.id, "submit", "procurement.pages.materialRequests.submitted")
+                }
               >
-                <Send className="mr-1 h-3 w-3" />
-                Submit
+                <Send className="me-1 h-3 w-3" />
+                {t("procurement.pages.purchaseOrders.submit")}
               </Button>
             )}
             {(mr.status === "draft" || mr.status === "pending_approval") && (
               <Button
                 size="sm"
                 disabled={busy}
-                onClick={() => void runAction(mr.id, "approve", "Material request approved")}
+                onClick={() =>
+                  void runAction(mr.id, "approve", "procurement.pages.materialRequests.approved")
+                }
               >
-                Approve
+                {t("procurement.pages.purchaseOrders.approve")}
               </Button>
             )}
             {mr.status === "approved" && (
@@ -143,8 +150,8 @@ export default function MaterialRequestsPage() {
                   setConvertOpen(true);
                 }}
               >
-                <ArrowRight className="mr-1 h-3 w-3" />
-                To LPO
+                <ArrowRight className="me-1 h-3 w-3" />
+                {t("procurement.pages.materialRequests.toLpo")}
               </Button>
             )}
             <AdminDocumentDeleteButton
@@ -163,12 +170,12 @@ export default function MaterialRequestsPage() {
   return (
     <div>
       <ProcurementListHeader
-        title="Material Requests"
-        description="Step 1 — request materials, authorize, then convert to LPO"
+        title={<BilingualText labelKey="procurement.pages.materialRequests.title" />}
+        description={<BilingualText labelKey="procurement.pages.materialRequests.description" />}
         action={
           <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New request
+            <Plus className="me-2 h-4 w-4" />
+            {t("procurement.pages.materialRequests.new")}
           </Button>
         }
       />
@@ -191,14 +198,16 @@ export default function MaterialRequestsPage() {
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Convert to LPO</DialogTitle>
+            <DialogTitle>
+              <BilingualText labelKey="procurement.pages.materialRequests.convertTitle" />
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Supplier</Label>
+              <FieldLabel labelKey="procurement.fields.supplier" />
               <Select value={supplierId || undefined} onValueChange={setSupplierId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
+                  <SelectValue placeholder={t("procurement.placeholders.selectSupplier")} />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers
@@ -212,7 +221,7 @@ export default function MaterialRequestsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Payment timing</Label>
+              <FieldLabel labelKey="procurement.fields.paymentTiming" />
               <Select
                 value={paymentTerms}
                 onValueChange={(v) => setPaymentTerms(v as PurchasePaymentTerms)}
@@ -221,19 +230,19 @@ export default function MaterialRequestsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="advance">Advance</SelectItem>
-                  <SelectItem value="on_delivery">On delivery</SelectItem>
-                  <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="advance">{t("paymentTerms.advance")}</SelectItem>
+                  <SelectItem value="on_delivery">{t("paymentTerms.on_delivery")}</SelectItem>
+                  <SelectItem value="credit">{t("paymentTerms.credit")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button onClick={() => void handleConvert()} disabled={acting !== null}>
-              Create LPO
+              {t("procurement.pages.materialRequests.createLpo")}
             </Button>
           </DialogFooter>
         </DialogContent>

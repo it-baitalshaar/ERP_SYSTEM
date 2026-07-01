@@ -33,6 +33,7 @@ import {
 } from "@/lib/data/auth";
 import { upsertFeatureFlag } from "@/lib/data/feature-flags";
 import type { SessionPayload } from "@/lib/server/users";
+import type { LanguageMode } from "@/lib/i18n/types";
 import {
   getOperationalBranches,
   resolveDocumentContext,
@@ -67,6 +68,7 @@ interface AppState {
   featureFlags: FeatureFlag[];
   userPermissions: EffectivePermission[];
   sidebarCollapsed: boolean;
+  languageMode: LanguageMode;
   loginWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   hydrateSession: () => Promise<void>;
@@ -81,6 +83,7 @@ interface AppState {
   toggleFeatureFlag: (key: string) => Promise<void>;
   refreshCompanies: (companies: Company[]) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setLanguageMode: (mode: LanguageMode) => void;
   getEffectiveRoleId: () => string;
   getCurrentOrganization: () => Organization | undefined;
   getCurrentCompany: () => Company | undefined;
@@ -142,6 +145,7 @@ export const useAppStore = create<AppState>()(
       featureFlags: getDefaultFeatureFlags(COMPANY_AL_SAQIYA),
       userPermissions: mergeEffectivePermissions("role-auditor", []),
       sidebarCollapsed: false,
+      languageMode: "en",
 
       loginWithPassword: async (email, password) => {
         const result = await signInWithEmail(email, password);
@@ -260,6 +264,8 @@ export const useAppStore = create<AppState>()(
 
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
+      setLanguageMode: (mode) => set({ languageMode: mode }),
+
       getEffectiveRoleId: () => {
         const state = get();
         if (state.previewUser) return state.previewUser.roleId;
@@ -340,6 +346,7 @@ export const useAppStore = create<AppState>()(
       name: "erp-app-store",
       partialize: (s) => ({
         sidebarCollapsed: s.sidebarCollapsed,
+        languageMode: s.languageMode,
         currentOrganizationId: s.currentOrganizationId,
         currentCompanyId: s.currentCompanyId,
         currentBranchId: s.currentBranchId,

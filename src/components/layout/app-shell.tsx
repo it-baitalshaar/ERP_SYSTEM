@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { Breadcrumbs } from "@/components/shared/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getBreadcrumbs } from "@/lib/navigation";
 import { AiChatbotWidget } from "@/components/shared/ai-chatbot";
 import { HydrationGate } from "@/components/providers/hydration-gate";
+import { LocaleProvider } from "@/components/providers/locale-provider";
 import { useAppStore } from "@/stores/app-store";
+import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const { isAuthenticated, isHydrated, hydrateSession, isFeatureEnabled } = useAppStore();
+  const crumbs = useBreadcrumbs();
 
   useEffect(() => {
     void hydrateSession();
@@ -22,12 +22,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!isHydrated) return null;
   if (!isAuthenticated) return null;
 
-  const crumbs = getBreadcrumbs(pathname);
   const aiEnabled = isFeatureEnabled("mod_ai");
 
   return (
     <HydrationGate>
-      <TooltipProvider>
+      <LocaleProvider>
+        <TooltipProvider>
         <div className="flex h-screen overflow-hidden">
           <div className="hidden lg:block">
             <Sidebar />
@@ -41,7 +41,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         {aiEnabled && <AiChatbotWidget />}
-      </TooltipProvider>
+        </TooltipProvider>
+      </LocaleProvider>
     </HydrationGate>
   );
 }

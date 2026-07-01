@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { documentTotal, documentTotals } from "@/lib/sales/calculations";
+import { parsePaidLineQty } from "@/lib/sales/delivery-fulfillment";
 import type {
   Customer,
   DeliveryNote,
@@ -137,6 +138,7 @@ export function mapTaxInvoice(row: Record<string, unknown>): TaxInvoice {
     vat_amount: Number(row.vat_amount),
     total: Number(row.total),
     is_paid: Boolean(row.is_paid),
+    paid_line_qty: parsePaidLineQty(row.paid_line_qty),
     e_invoice_status: row.e_invoice_status as TaxInvoice["e_invoice_status"],
   };
 }

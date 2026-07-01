@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { useTranslations } from "@/hooks/use-translations";
 import type {
   MaterialReceiptNote,
   MaterialRequest,
@@ -22,10 +23,12 @@ export function ProcurementListHeader({
   description,
   action,
 }: {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   action?: ReactNode;
 }) {
+  const { t } = useTranslations();
+
   return (
     <PageHeader
       title={title}
@@ -33,7 +36,7 @@ export function ProcurementListHeader({
       action={
         action ?? (
           <Button variant="outline" disabled>
-            Export
+            {t("common.export")}
           </Button>
         )
       }
@@ -41,129 +44,231 @@ export function ProcurementListHeader({
   );
 }
 
-export const materialRequestColumns: ColumnDef<MaterialRequest>[] = [
-  { accessorKey: "number", header: "Number" },
-  { accessorKey: "requester_name", header: "Requested by" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "total",
-    header: "Est. total",
-    cell: ({ row }) => formatAed(row.original.total),
-  },
-];
+function headerCell(label: ReactNode) {
+  return () => label;
+}
 
-export const purchaseOrderColumns: ColumnDef<PurchaseOrder>[] = [
-  { accessorKey: "number", header: "LPO" },
-  { accessorKey: "supplier_name", header: "Supplier" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "payment_terms_type",
-    header: "Payment",
-    cell: ({ row }) => row.original.payment_terms_type.replace("_", " "),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "total",
-    header: "Total",
-    cell: ({ row }) => formatAed(row.original.total),
-  },
-];
+export function useMaterialRequestColumns(): ColumnDef<MaterialRequest>[] {
+  const { label, t } = useTranslations();
 
-export const proformaColumns: ColumnDef<ProformaInvoice>[] = [
-  { accessorKey: "number", header: "Proforma" },
-  { accessorKey: "purchase_order_number", header: "LPO" },
-  { accessorKey: "supplier_name", header: "Supplier" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "total",
-    header: "Total",
-    cell: ({ row }) => formatAed(row.original.total),
-  },
-];
+  return useMemo(
+    () => [
+      { accessorKey: "number", header: headerCell(label("procurement.fields.number")) },
+      {
+        accessorKey: "requester_name",
+        header: headerCell(label("procurement.fields.requestedBy")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "total",
+        header: headerCell(label("procurement.fields.estTotal")),
+        cell: ({ row }) => formatAed(row.original.total),
+      },
+    ],
+    [label, t]
+  );
+}
 
-export const deliveryNoteColumns: ColumnDef<SupplierDeliveryNote>[] = [
-  { accessorKey: "number", header: "Delivery note" },
-  { accessorKey: "purchase_order_number", header: "LPO" },
-  { accessorKey: "supplier_name", header: "Supplier" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-];
+export function usePurchaseOrderColumns(): ColumnDef<PurchaseOrder>[] {
+  const { label, t } = useTranslations();
 
-export const mrnColumns: ColumnDef<MaterialReceiptNote>[] = [
-  { accessorKey: "number", header: "MRN" },
-  { accessorKey: "purchase_order_number", header: "LPO" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "total",
-    header: "Total",
-    cell: ({ row }) => formatAed(row.original.total),
-  },
-];
+  return useMemo(
+    () => [
+      { accessorKey: "number", header: headerCell(label("procurement.fields.lpo")) },
+      {
+        accessorKey: "supplier_name",
+        header: headerCell(label("procurement.fields.supplier")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "payment_terms_type",
+        header: headerCell(label("procurement.fields.payment")),
+        cell: ({ row }) =>
+          t(`paymentTerms.${row.original.payment_terms_type}`, row.original.payment_terms_type),
+      },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "total",
+        header: headerCell(label("procurement.fields.total")),
+        cell: ({ row }) => formatAed(row.original.total),
+      },
+    ],
+    [label, t]
+  );
+}
 
-export const supplierInvoiceColumns: ColumnDef<SupplierInvoice>[] = [
-  { accessorKey: "number", header: "Invoice" },
-  { accessorKey: "supplier_name", header: "Supplier" },
-  { accessorKey: "purchase_order_number", header: "LPO" },
-  { accessorKey: "mrn_number", header: "MRN" },
-  { accessorKey: "date", header: "Date" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "total",
-    header: "Total (incl. VAT)",
-    cell: ({ row }) => formatAed(row.original.total),
-  },
-  {
-    accessorKey: "is_paid",
-    header: "Paid",
-    cell: ({ row }) => (row.original.is_paid ? "Yes" : "No"),
-  },
-];
+export function useProformaColumns(): ColumnDef<ProformaInvoice>[] {
+  const { label } = useTranslations();
 
-export const purchasePaymentColumns: ColumnDef<PurchasePayment>[] = [
-  { accessorKey: "number", header: "Payment" },
-  { accessorKey: "supplier_name", header: "Supplier" },
-  { accessorKey: "date", header: "Date" },
-  { accessorKey: "payment_type", header: "Type" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "supplier_invoice_number",
-    header: "Invoice",
-    cell: ({ row }) => row.original.supplier_invoice_number ?? "—",
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => formatAed(row.original.amount),
-  },
-];
+  return useMemo(
+    () => [
+      {
+        accessorKey: "number",
+        header: headerCell(label("procurement.fields.proforma")),
+      },
+      {
+        accessorKey: "purchase_order_number",
+        header: headerCell(label("procurement.fields.lpo")),
+      },
+      {
+        accessorKey: "supplier_name",
+        header: headerCell(label("procurement.fields.supplier")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "total",
+        header: headerCell(label("procurement.fields.total")),
+        cell: ({ row }) => formatAed(row.original.total),
+      },
+    ],
+    [label]
+  );
+}
+
+export function useDeliveryNoteColumns(): ColumnDef<SupplierDeliveryNote>[] {
+  const { label } = useTranslations();
+
+  return useMemo(
+    () => [
+      {
+        accessorKey: "number",
+        header: headerCell(label("procurement.fields.deliveryNote")),
+      },
+      {
+        accessorKey: "purchase_order_number",
+        header: headerCell(label("procurement.fields.lpo")),
+      },
+      {
+        accessorKey: "supplier_name",
+        header: headerCell(label("procurement.fields.supplier")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+    ],
+    [label]
+  );
+}
+
+export function useMrnColumns(): ColumnDef<MaterialReceiptNote>[] {
+  const { label } = useTranslations();
+
+  return useMemo(
+    () => [
+      { accessorKey: "number", header: headerCell(label("procurement.fields.mrn")) },
+      {
+        accessorKey: "purchase_order_number",
+        header: headerCell(label("procurement.fields.lpo")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "total",
+        header: headerCell(label("procurement.fields.total")),
+        cell: ({ row }) => formatAed(row.original.total),
+      },
+    ],
+    [label]
+  );
+}
+
+export function useSupplierInvoiceColumns(): ColumnDef<SupplierInvoice>[] {
+  const { label, t } = useTranslations();
+
+  return useMemo(
+    () => [
+      {
+        accessorKey: "number",
+        header: headerCell(label("procurement.fields.invoice")),
+      },
+      {
+        accessorKey: "supplier_name",
+        header: headerCell(label("procurement.fields.supplier")),
+      },
+      {
+        accessorKey: "purchase_order_number",
+        header: headerCell(label("procurement.fields.lpo")),
+      },
+      {
+        accessorKey: "mrn_number",
+        header: headerCell(label("procurement.fields.mrn")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "total",
+        header: headerCell(label("procurement.fields.totalInclVat")),
+        cell: ({ row }) => formatAed(row.original.total),
+      },
+      {
+        accessorKey: "is_paid",
+        header: headerCell(label("common.paid")),
+        cell: ({ row }) => (row.original.is_paid ? t("common.yes") : t("common.no")),
+      },
+    ],
+    [label, t]
+  );
+}
+
+export function usePurchasePaymentColumns(): ColumnDef<PurchasePayment>[] {
+  const { label } = useTranslations();
+
+  return useMemo(
+    () => [
+      {
+        accessorKey: "number",
+        header: headerCell(label("procurement.fields.payment")),
+      },
+      {
+        accessorKey: "supplier_name",
+        header: headerCell(label("procurement.fields.supplier")),
+      },
+      { accessorKey: "date", header: headerCell(label("procurement.fields.date")) },
+      {
+        accessorKey: "payment_type",
+        header: headerCell(label("procurement.fields.type")),
+      },
+      {
+        accessorKey: "status",
+        header: headerCell(label("procurement.fields.status")),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: "supplier_invoice_number",
+        header: headerCell(label("procurement.fields.invoice")),
+        cell: ({ row }) => row.original.supplier_invoice_number ?? "—",
+      },
+      {
+        accessorKey: "amount",
+        header: headerCell(label("procurement.fields.amount")),
+        cell: ({ row }) => formatAed(row.original.amount),
+      },
+    ],
+    [label]
+  );
+}
