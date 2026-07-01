@@ -14,10 +14,16 @@ import {
   mapSupplierDeliveryNote,
   mapSupplierInvoice,
   materialRequestInsertPayload,
+  mrnListSelect,
   nextProcurementNumber,
   normalizeLines,
+  proformaListSelect,
+  PROFORMA_DETAIL_SELECT,
   purchaseOrderInsertPayload,
   resolveBranchCode,
+  supplierDeliveryListSelect,
+  SUPPLIER_DELIVERY_DETAIL_SELECT,
+  MRN_DETAIL_SELECT,
   supplierInvoiceInsertPayload,
 } from "@/lib/server/procurement";
 import type {
@@ -113,33 +119,64 @@ export async function GET(request: Request) {
     }
 
     if (resource === "proforma_invoices") {
-      const { data, error } = await db
-        .from("proforma_invoices")
-        .select("*, suppliers(name, phone), purchase_orders(number)")
-        .match(documentScopeFilter(companyId, branchId))
-        .order("date", { ascending: false });
+      const { data, error } = branchId
+        ? await db
+            .from("proforma_invoices")
+            .select(proformaListSelect(branchId))
+            .eq("company_id", companyId)
+            .eq("purchase_orders.branch_id", branchId)
+            .order("date", { ascending: false })
+        : await db
+            .from("proforma_invoices")
+            .select(proformaListSelect(branchId))
+            .eq("company_id", companyId)
+            .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ data: (data ?? []).map(mapProformaInvoice) });
+      return NextResponse.json({
+        data: ((data ?? []) as unknown as Record<string, unknown>[]).map(mapProformaInvoice),
+      });
     }
 
     if (resource === "supplier_delivery_notes") {
-      const { data, error } = await db
-        .from("supplier_delivery_notes")
-        .select("*, suppliers(name, phone), purchase_orders(number)")
-        .match(documentScopeFilter(companyId, branchId))
-        .order("date", { ascending: false });
+      const { data, error } = branchId
+        ? await db
+            .from("supplier_delivery_notes")
+            .select(supplierDeliveryListSelect(branchId))
+            .eq("company_id", companyId)
+            .eq("purchase_orders.branch_id", branchId)
+            .order("date", { ascending: false })
+        : await db
+            .from("supplier_delivery_notes")
+            .select(supplierDeliveryListSelect(branchId))
+            .eq("company_id", companyId)
+            .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ data: (data ?? []).map(mapSupplierDeliveryNote) });
+      return NextResponse.json({
+        data: ((data ?? []) as unknown as Record<string, unknown>[]).map(
+          mapSupplierDeliveryNote
+        ),
+      });
     }
 
     if (resource === "material_receipt_notes") {
-      const { data, error } = await db
-        .from("material_receipt_notes")
-        .select("*, purchase_orders(number)")
-        .match(documentScopeFilter(companyId, branchId))
-        .order("date", { ascending: false });
+      const { data, error } = branchId
+        ? await db
+            .from("material_receipt_notes")
+            .select(mrnListSelect(branchId))
+            .eq("company_id", companyId)
+            .eq("purchase_orders.branch_id", branchId)
+            .order("date", { ascending: false })
+        : await db
+            .from("material_receipt_notes")
+            .select(mrnListSelect(branchId))
+            .eq("company_id", companyId)
+            .order("date", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ data: (data ?? []).map(mapMaterialReceiptNote) });
+      return NextResponse.json({
+        data: ((data ?? []) as unknown as Record<string, unknown>[]).map(
+          mapMaterialReceiptNote
+        ),
+      });
     }
 
     if (resource === "supplier_invoices") {
@@ -577,7 +614,7 @@ export async function PATCH(request: Request) {
             lines,
             total: documentTotal(lines),
           })
-          .select("*, suppliers(name, phone), purchase_orders(number)")
+          .select(PROFORMA_DETAIL_SELECT)
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -617,7 +654,7 @@ export async function PATCH(request: Request) {
             lines,
             notes: body.notes ? String(body.notes) : null,
           })
-          .select("*, suppliers(name, phone), purchase_orders(number)")
+          .select(SUPPLIER_DELIVERY_DETAIL_SELECT)
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -664,7 +701,7 @@ export async function PATCH(request: Request) {
             price_updates: priceUpdates,
             total: documentTotal(lines),
           })
-          .select("*, purchase_orders(number)")
+          .select(MRN_DETAIL_SELECT)
           .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 400 });

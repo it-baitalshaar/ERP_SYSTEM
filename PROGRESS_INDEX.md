@@ -16,7 +16,7 @@ Last updated: 2026-06-26 by Cursor Agent
 | Sales (customers, orders, invoices, DN) | /sales/* | in-progress | Below-cost warning; warehouse availability on product pick |
 | Procurement (full purchase cycle) | /procurement/* | in-progress | LPO variance; linked purchase payments |
 | Document print / PDF | cross-module | done | Templates + Windows print dialog |
-| Admin document templates | /admin/ui-customization | done | Logo, LPO/quote layout, doc naming |
+| Admin migrations (Focus staging) | /admin/migrations | done | View focus-data-fetch runs, catalog, raw samples |
 | Org structure + data lifecycle | /admin/org-structure | done | Delete w/ backup, export/reset/restore |
 | User module grants | /admin/users | done | Per-user extra modules; Super Admin bypass |
 | Auth + platform init | /login, /itbaitalshaar | done | Username or email login |
@@ -69,3 +69,4 @@ Last updated: 2026-06-26 by Cursor Agent
 | 0012_building_materials.sql | ready — cost_price, supplier balance, MRN variance |
 | 0013_document_templates.sql | ready — company print template settings |
 | 0014_focus_raw_staging.sql | ready — Focus SQL raw import staging (focus-data-fetch) |
+| 0015_procurement_branch_scope.sql | ready — branch_id on proforma, delivery, MRN |

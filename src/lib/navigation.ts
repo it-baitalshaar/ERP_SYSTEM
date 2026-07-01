@@ -159,6 +159,7 @@ export const navigation: NavGroup[] = [
       { key: "admin-tax", label: "Tax & Compliance", href: "/admin/tax-compliance", icon: "Scale", module_key: "admin" },
       { key: "admin-audit", label: "Audit Log Viewer", href: "/admin/audit-log", icon: "ScrollText", module_key: "admin" },
       { key: "admin-backup", label: "Backup & System Health", href: "/admin/backup", icon: "HeartPulse", module_key: "admin" },
+      { key: "admin-migrations", label: "Migrations", href: "/admin/migrations", icon: "ArrowLeftRight", module_key: "admin" },
       { key: "admin-integrations", label: "Integrations Hub", href: "/admin/integrations", icon: "Blocks", module_key: "admin" },
     ],
   },

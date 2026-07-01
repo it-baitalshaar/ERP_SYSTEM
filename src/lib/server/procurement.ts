@@ -30,6 +30,33 @@ type Db = NonNullable<ReturnType<typeof createAdminClientOrNull>>;
 export const MATERIAL_REQUEST_SELECT =
   "*, requester:profiles!material_requests_requested_by_fkey(full_name)";
 
+export const PROFORMA_DETAIL_SELECT = "*, suppliers(name, phone), purchase_orders(number)";
+export const SUPPLIER_DELIVERY_DETAIL_SELECT =
+  "*, suppliers(name, phone), purchase_orders(number)";
+export const MRN_DETAIL_SELECT = "*, purchase_orders(number)";
+
+/** Branch-scoped list selects — child tables join purchase_orders for branch filter. */
+export function proformaListSelect(branchId: string | null | undefined): string {
+  if (branchId) {
+    return "*, suppliers(name, phone), purchase_orders!inner(number, branch_id)";
+  }
+  return PROFORMA_DETAIL_SELECT;
+}
+
+export function supplierDeliveryListSelect(branchId: string | null | undefined): string {
+  if (branchId) {
+    return "*, suppliers(name, phone), purchase_orders!inner(number, branch_id)";
+  }
+  return SUPPLIER_DELIVERY_DETAIL_SELECT;
+}
+
+export function mrnListSelect(branchId: string | null | undefined): string {
+  if (branchId) {
+    return "*, purchase_orders!inner(number, branch_id)";
+  }
+  return MRN_DETAIL_SELECT;
+}
+
 type NumberedTable =
   | "material_requests"
   | "purchase_orders"

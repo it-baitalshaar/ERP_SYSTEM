@@ -64,7 +64,12 @@ export default function PurchaseOrdersPage() {
       toast.error(result.error);
       return;
     }
-    toast.success(success);
+    toast.success(success, {
+      description:
+        action === "create_proforma"
+          ? "Open Procurement → Proforma Invoices to view it."
+          : undefined,
+    });
     void load();
   };
 
